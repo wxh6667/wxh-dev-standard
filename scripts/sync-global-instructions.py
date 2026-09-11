@@ -9,7 +9,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 TARGETS = {
     "codex": (ROOT / "AGENTS.md", Path.home() / ".codex" / "AGENTS.md"),
-    "claude": (ROOT / "global" / "claude" / "CLAUDE.md", Path.home() / ".claude" / "CLAUDE.md"),
+    "claude": (ROOT / "CLAUDE.md", Path.home() / ".claude" / "CLAUDE.md"),
 }
 
 

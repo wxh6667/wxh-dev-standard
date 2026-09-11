@@ -72,9 +72,11 @@ CodeGraph 和 Trellis 属于项目级上下文能力。进入项目后，由项�
 
 执行 Maven/Gradle、大型前端构建、完整测试集、本地 Docker 构建或其它明显吃内存的任务前，先检查主机当前可用内存。Linux 优先参考 `/proc/meminfo` 的 `MemAvailable` 或 `free -h` 的 `available`。
 
-核心目标是：重任务执行期间尽量让主机仍保留约 **2 GiB 可用内存余量**。这不是把 Maven 或 Docker 构建任务本身固定限制为 2 GiB，也不默认要求固定 2 CPU、`systemd-run` 或 `codex-limited` builder。
+**主机必须保留至少约 2 GiB 的可用内存安全余量。** 这不是把 Maven、Docker 或其它构建任务本身限制为 2 GiB，而是给操作系统、Agent、SSH、数据库、容器和其它常驻服务保留的安全底线。
 
-当前资源不足或预计执行后会明显压低到该余量以下时，优先降低并发、释放可以安全释放的临时资源，或改用既定远程构建流程。不要擅自停止数据库、生产容器或其它业务服务来腾内存。生产 Docker 镜像按全局交付规则优先通过 CNB 远程构建。
+执行重任务前根据当前 `MemAvailable` 和任务规模判断可安全使用的资源；必要时动态降低 Maven/Gradle/测试并发、JVM/Node 内存，或者使用当前机器适用的 cgroup/systemd-run 等方式限制任务。不要固定照搬旧机器的 2 CPU/2 GiB `systemd-run` 或 3 GiB/2 CPU `codex-limited` builder。
+
+如果无法保证任务执行期间主机至少约 2 GiB 可用内存余量，则不要直接启动该重任务。优先释放可安全释放的临时资源、降低并发或改用远程构建。不得擅自停止数据库、生产容器或其它业务服务来腾内存。生产 Docker 镜像按全局交付规则通过 CNB 远程构建。
 
 ## 安全边界
 

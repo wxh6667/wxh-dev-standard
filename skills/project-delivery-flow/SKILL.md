@@ -5,7 +5,7 @@ description: Orchestrate an end-to-end software delivery from an existing or new
 
 # Project Delivery Flow
 
-Use the specialized Skills only when their step is relevant. Do not load every reference up front.
+Use specialized Skills only when their step is relevant. Do not load every reference or rule up front.
 
 ## Sequence
 
@@ -15,12 +15,13 @@ Use the specialized Skills only when their step is relevant. Do not load every r
 4. `architecture-review`: preserve the existing architecture unless a change is necessary.
 5. Implement the required frontend/backend/database/API changes with the corresponding Skills.
 6. Run `testing`; use `debugging` until real failures are closed.
-7. Run `git-workflow`: secrets/ignore review, repository isolation when requested, commit and push.
-8. Run `docker-build`: one final custom image per independently deployable business runtime type.
-9. Run `cnb-ci`: production image must be built remotely by CNB, not locally. Fix and repush until green.
-10. Run `deployment`: pull the CNB-built registry image and validate `docker-compose.yml + .env` startup.
-11. Run `delivery`: check functionality, logs, persistence, docs and reproducibility.
+7. Run `security-check` for the boundaries touched by the change, especially auth, permissions, secrets, uploads, callbacks, data access and deployment exposure.
+8. Run `git-workflow`: secret/ignore review, repository isolation when requested, commit and push.
+9. Run `docker-build`: one final custom image per independently deployable business runtime type.
+10. Run `cnb-ci`: production image must be built remotely by CNB, not locally. Fix and repush until green.
+11. Run `deployment`: pull the CNB-built registry image and validate `docker-compose.yml + .env` startup.
+12. Run `delivery`: check functionality, logs, persistence, docs and reproducibility.
 
 ## Completion rule
 
-“Done” means both code paths and delivery path are verified. A successful source build alone is not delivery; a running container with broken frontend/API is not delivery; a CNB build that was bypassed by a local production build is not compliant.
+“Done” means both code paths and delivery path are verified. A successful source build alone is not delivery; a running container with broken frontend/API is not delivery; a CNB build bypassed by a local production build is not compliant.

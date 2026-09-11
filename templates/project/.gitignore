@@ -18,7 +18,7 @@ __pycache__/
 .venv/
 venv/
 
-# Runtime data
+# Runtime data created by the deployed application
 logs/
 *.log
 data/
@@ -30,16 +30,16 @@ uploads/
 .DS_Store
 Thumbs.db
 
-# Temporary / backup
+# Temporary editor/backup files
 *.tmp
 *.temp
 *.bak
 *.swp
-*.zip
-*.tar
-*.tar.gz
 
 # Coverage / test cache
 coverage/
 .pytest_cache/
 .nyc_output/
+
+# Add project-specific generated files after inspecting the real repository.
+# Do not ignore source assets or archives globally without confirming they are disposable.

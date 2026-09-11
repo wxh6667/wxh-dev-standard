@@ -1,0 +1,45 @@
+# Environment / credentials
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Dependencies / generated builds
+node_modules/
+dist/
+build/
+target/
+.gradle/
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Runtime data
+logs/
+*.log
+data/
+uploads/
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Temporary / backup
+*.tmp
+*.temp
+*.bak
+*.swp
+*.zip
+*.tar
+*.tar.gz
+
+# Coverage / test cache
+coverage/
+.pytest_cache/
+.nyc_output/

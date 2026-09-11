@@ -20,6 +20,33 @@
       "env": {
         "FASTMCP_LOG_LEVEL": "ERROR"
       }
+    },
+    "codegraph": {
+      "type": "stdio",
+      "command": "codegraph",
+      "args": ["serve", "--mcp"],
+      "env": {
+        "CODEGRAPH_NO_DAEMON": "1"
+      }
+    },
+    "playwright": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["@playwright/mcp@latest", "--isolated", "--no-sandbox"]
+    },
+    "figma-bridge": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@gethopp/figma-mcp-bridge"]
+    },
+    "mcp-server-time": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": ["--with", "mcp<2", "mcp-server-time==2026.7.10", "--local-timezone=Asia/Shanghai"]
+    },
+    "openaiDeveloperDocs": {
+      "type": "http",
+      "url": "https://developers.openai.com/mcp"
     }
   }
 }

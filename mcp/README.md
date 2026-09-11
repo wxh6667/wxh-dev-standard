@@ -20,7 +20,20 @@ Codex 当前正式 MCP 配置源是 `~/.codex/config.toml` 中的 `[mcp_servers.
 
 ## Claude Code
 
-`claude.mcp.example.json` 只记录原备份中 Claude 使用过的 MCP 结构：Context7、sequential-thinking 和 AWS document loader。它是参考模板，不应直接覆盖 Claude 的现有配置；安装时按当前 Claude Code 版本支持的方式合并，并将真实密钥保留在环境变量/本机私有配置中。
+`claude.mcp.example.json` 是 Claude Code 的可移植 MCP 基线，与 Codex 片段来自同一份原环境，两套保持能力对齐：Context7、sequential-thinking、AWS document loader、CodeGraph、Playwright、Figma bridge、mcp-server-time 和 OpenAI Developer Docs（远程 HTTP MCP）。
+
+安装到新机器时应：
+
+1. 先读取目标机器已有 Claude MCP 配置（`claude mcp list` 或 `~/.claude.json` 的全局 `mcpServers`）；
+2. 备份原配置；
+3. 检查 `npx`、`uvx`、`codegraph` 等实际依赖是否存在；
+4. 只合并缺失或需要更新的条目，不覆盖机器上已有的其它 MCP、项目级配置和用户设置；
+5. Context7 等密钥使用 `${VAR}` 环境变量占位符或工具自己的登录机制，不写入 Git；
+6. FastCtx 不在基线内：它依赖机器专有的绝对路径，只在目标机器定位到可执行文件后才按需添加；
+7. `deobfuscate-mcp-server` 在源环境就是禁用状态，不安装；
+8. 合并后用 `claude mcp list` 验证每个服务可连接。
+
+Codex 侧的 per-tool 审批配置（如 `playwright.tools.browser_close.approval_mode`）是 Codex 专有格式，Claude Code 用自身 permission 机制承接，不在本模板内表达。
 
 ## 与 Skills / Global Instructions 的边界
 

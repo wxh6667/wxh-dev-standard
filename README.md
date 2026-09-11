@@ -4,17 +4,27 @@
 
 本仓库同步三类东西：
 
-1. `global/`：跨项目长期生效的全局开发指令；
+1. 根目录 `AGENTS.md` + `global/claude/CLAUDE.md`：Codex / Claude Code 各自的跨项目长期全局指令；
 2. `skills/`：按任务自动发现和加载的可复用执行流程；
 3. `mcp/`：跨机器可复用、但必须安全合并的 MCP 基线。
 
-具体业务项目自己的需求、架构、数据库说明、项目 `AGENTS.md`、Docker/CNB 文件以及 CodeGraph/Trellis 项目状态继续留在各项目中。
+具体业务项目自己的需求、架构、数据库说明、项目 `AGENTS.md` / `CLAUDE.md`、Docker/CNB 文件以及 CodeGraph/Trellis 项目状态继续留在各项目中。
 
-## 为什么不用一个巨大“系统提示词”
+## Codex 全局提示词
 
-Codex CLI/IDE 真正的用户全局指令入口是 `~/.codex/AGENTS.md`，因此本仓库把 Codex 全局指令直接维护在 [`global/codex/AGENTS.md`](global/codex/AGENTS.md)。Claude Code 则独立维护 [`global/claude/CLAUDE.md`](global/claude/CLAUDE.md)。两套入口分别安装、分别更新，不要求两者同时存在。
+仓库根目录 [`AGENTS.md`](AGENTS.md) **就是 Codex 全局系统提示词的标准源文件**。它不是“约束 wxh-dev-standard 这个仓库本身”的项目规则。
 
-全局指令只保留稳定行为，例如中文沟通、优先实际执行、基于证据判断、最小化无关改动、安全边界、主机资源保护以及 Skill 自动加载。需求分析、前后端、测试、Git、Docker、CNB、部署、CodeGraph/Trellis 等具体流程放进 Skills，避免每次会话都加载一整套长规则。
+这份文件来自原 Linux 备份中的 `/root/AGENTS.md` / `/root/.codex/AGENTS.md`，保留语言与表达、协作方式、主 Agent/委派、调试优先、代码质量、结构性修改判断、规划执行、安全边界、Skill 自动发现以及主机资源保护等长期规则；已经由 Skill/MCP 承接的 Trellis/CodeGraph 初始化细节、前后端 workflow、测试步骤、Docker/CNB 具体流程、Context7/FastCtx 具体调用步骤不再重复塞进全局提示词。
+
+安装时同步关系是：
+
+```text
+仓库根目录 AGENTS.md
+        ↓
+~/.codex/AGENTS.md
+```
+
+Claude Code 不复用 Codex 的 AGENTS，而是独立维护 [`global/claude/CLAUDE.md`](global/claude/CLAUDE.md)，同步到 `~/.claude/CLAUDE.md`。
 
 ## 核心交付约定
 
@@ -76,14 +86,14 @@ Claude Code 的 MCP 按 [`mcp/claude.mcp.example.json`](mcp/claude.mcp.example.j
 ## 目录
 
 ```text
-global/       Codex / Claude 各自独立的跨项目全局指令源
+AGENTS.md     Codex 全局系统提示词标准源，安装时同步到 ~/.codex/AGENTS.md
+global/       Claude Code 等独立全局指令源说明
 skills/       按任务自动触发的 Agent Skills
 mcp/          Codex / Claude 脱敏 MCP 基线与安全合并说明
 migration/    原环境备份的脱敏盘点与迁移说明
 references/   多个 Skill 共用的详细参考
 templates/    项目 Docker / Compose / CNB 等模板
 scripts/      全局指令、Skill 同步与校验工具
-AGENTS.md     仅用于维护本仓库自身
 INSTALL.md    Codex / Claude 分开的自然语言安装与更新说明
 ```
 

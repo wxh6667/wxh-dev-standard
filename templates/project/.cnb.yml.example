@@ -1,0 +1,28 @@
+main:
+  push:
+    - services:
+        - docker
+      env:
+        IMAGE: registry.cn-shanghai.aliyuncs.com/heilaowang/replace-project
+      stages:
+        - name: build-and-push-production-image
+          script: |
+            set -eu
+            test -n "${ALIYUN_REGISTRY_USER:-}" || { echo "missing ALIYUN_REGISTRY_USER"; exit 1; }
+            test -n "${ALIYUN_REGISTRY_PASSWORD:-}" || { echo "missing ALIYUN_REGISTRY_PASSWORD"; exit 1; }
+
+            IMAGE_TAG="$(git rev-parse --short=12 HEAD)"
+            echo "$ALIYUN_REGISTRY_PASSWORD" | docker login registry.cn-shanghai.aliyuncs.com \
+              -u "$ALIYUN_REGISTRY_USER" --password-stdin
+
+            docker build \
+              -f docker/Dockerfile \
+              -t "${IMAGE}:${IMAGE_TAG}" \
+              -t "${IMAGE}:latest" \
+              .
+
+            docker push "${IMAGE}:${IMAGE_TAG}"
+            docker push "${IMAGE}:latest"
+
+# Configure ALIYUN_REGISTRY_USER / ALIYUN_REGISTRY_PASSWORD as CNB secret variables.
+# Adapt the Dockerfile path/image name to the real project. Production images are built here, not locally.

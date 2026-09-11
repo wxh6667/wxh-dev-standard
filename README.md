@@ -1,12 +1,13 @@
 # wxh-dev-standard
 
-面向个人开发环境的 **Codex 优先、Claude Code 独立兼容** 的全局 AI Coding 配置库。
+面向个人开发环境的跨项目全局 AI Coding 配置库。Codex 与 Claude Code 是**两套平行的独立体系**，各自有完整的提示词、Skills、MCP 和 hooks，不共享文件、不做互相兼容层；分别安装、分别更新，不要求同时存在。
 
-本仓库同步三类东西：
+本仓库按工具分两套内容：
 
-1. 根目录 `AGENTS.md` / `CLAUDE.md`：Codex / Claude Code 各自的跨项目长期全局指令；
-2. `skills/`：按任务自动发现和加载的可复用执行流程；
-3. `mcp/`：跨机器可复用、但必须安全合并的 MCP 基线。
+1. 根目录 `AGENTS.md`（Codex）/ `CLAUDE.md`（Claude Code）：各自的跨项目长期全局指令；
+2. `skills/`：按任务自动发现和加载的可复用执行流程（两端共用）；
+3. `hooks/`：Claude Code 用户级 hook 脚本（仅 Claude 侧）；
+4. `mcp/`：两端各自的 MCP 基线，只合并，不整份覆盖。
 
 具体业务项目自己的需求、架构、数据库说明、项目 `AGENTS.md` / `CLAUDE.md`、Docker/CNB 文件以及 CodeGraph/Trellis 项目状态继续留在各项目中。
 
@@ -42,7 +43,7 @@ Codex 和 Claude Code 分别安装、分别更新，不要求同时存在，也�
 
 ## Codex 安装
 
-Codex 是本仓库主要目标。最推荐直接把 [`INSTALL.md`](INSTALL.md) 中的 **Codex 自然语言安装说明**交给 Codex，让它完成旧环境检查、备份、全局 AGENTS、Skills、MCP 和验证。
+Codex 侧是独立的一套：只用 `AGENTS.md` + `skills/` + Codex MCP，不涉及 `CLAUDE.md` 和 `hooks/`。最推荐直接把 [`INSTALL.md`](INSTALL.md) 中的 **Codex 自然语言安装说明**交给 Codex，让它完成旧环境检查、备份、全局 AGENTS、Skills、MCP 和验证。
 
 手工最小安装：
 
@@ -57,7 +58,7 @@ Codex MCP 不使用文件覆盖方式安装，按 [`mcp/README.md`](mcp/README.m
 
 ## Claude Code 安装
 
-Claude Code 与 Codex **分开安装**。机器上只需要 Claude 时，不需要安装 Codex 的 AGENTS、Skills 目录或 MCP 配置。
+Claude Code 侧是独立的一套：只用 `CLAUDE.md` + `skills/` + `hooks/` + Claude MCP，不涉及 `AGENTS.md` 和 `~/.codex`。机器上只需要 Claude 时，不需要安装 Codex 的任何内容。
 
 ```bash
 git clone https://github.com/wxh6667/wxh-dev-standard.git ~/.wxh-dev-standard

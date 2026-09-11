@@ -1,6 +1,6 @@
 # MCP Baseline
 
-本目录记录跨机器可复用的 MCP 基线。Codex 是主要目标，Claude Code 作为兼容目标。
+本目录记录跨机器可复用的 MCP 基线，按工具分两套：`codex.config.fragment.toml` 只用于 Codex，`claude.mcp.example.json` 只用于 Claude Code，互不复用。
 
 ## Codex
 

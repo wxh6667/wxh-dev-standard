@@ -1,6 +1,6 @@
 # 安装、迁移与更新
 
-`wxh-dev-standard` 是跨项目全局 AI Coding 配置库。Codex 是主要目标，Claude Code 独立兼容；两者分别安装、分别更新，不要求同时存在。
+`wxh-dev-standard` 是跨项目全局 AI Coding 配置库。Codex 与 Claude Code 是两套平行的独立体系：Codex 用 `AGENTS.md` + `skills/` + Codex MCP，Claude Code 用 `CLAUDE.md` + `skills/` + `hooks/` + Claude MCP，互不引用、不做兼容层；两者分别安装、分别更新，不要求同时存在。
 
 标准源：
 
@@ -21,7 +21,7 @@ mcp/        -> 两端各自的 MCP 基线，只合并，不整份覆盖
 请初始化这台机器的 wxh-dev-standard Codex 全局开发环境：
 https://github.com/wxh6667/wxh-dev-standard.git
 
-这是当前系统用户跨项目使用的 Codex 全局配置，不要安装到当前业务项目内部，也不要修改 Claude Code 配置。
+这是当前系统用户跨项目使用的 Codex 全局配置体系，不要安装到当前业务项目内部，也不要修改 Claude Code 配置（不碰 ~/.claude、仓库里的 CLAUDE.md、hooks/ 和 Claude MCP）。
 
 先检查现有 ~/.codex/AGENTS.md、$HOME/.agents/skills、~/.codex/config.toml 和旧 .agents/.codex rules、workflow、Skills。准备替换或删除的内容先做带时间戳备份；未知 Skill、Codex 系统 Skill、凭证、插件、登录状态、MCP 私有认证和项目索引不要覆盖或删除。
 
@@ -93,7 +93,7 @@ python3 "$HOME/.wxh-dev-standard/scripts/validate-skills.py"
 请初始化这台机器的 wxh-dev-standard Claude Code 全局开发环境：
 https://github.com/wxh6667/wxh-dev-standard.git
 
-这是当前系统用户跨项目使用的 Claude Code 全局配置，不要安装到当前业务项目内部，也不要修改 Codex 配置。
+这是当前系统用户跨项目使用的 Claude Code 全局配置体系，不要安装到当前业务项目内部，也不要修改 Codex 配置（不碰 ~/.codex、仓库里的 AGENTS.md 和 Codex MCP）。
 
 先检查现有 ~/.claude/CLAUDE.md、~/.claude/skills 和 Claude MCP。准备替换或删除的内容先备份；未知 Skill、凭证、登录状态、settings、插件和私有认证不要覆盖。
 

@@ -1,45 +1,22 @@
-# Server Cleanup Skill
+---
+name: server-cleanup
+description: Audit and clean deployment-server resources such as stopped containers, unused images, old logs, backups, and abandoned project directories. Use for server storage/operations cleanup. Do not use this skill to clean AI rules or local agent configuration; use agent-config-cleanup instead.
+---
 
-## Purpose
+# Server Cleanup
 
-按照项目标准整理服务器资产。
+This is an operational cleanup workflow. Gather evidence before deletion.
 
 ## Workflow
 
-第一阶段：扫描
+1. Inventory running/stopped containers, images, networks, volumes, compose projects, listening ports, disk usage and major project directories.
+2. Trace each candidate resource to a running service, compose file, bind mount, database, upload directory, certificate or backup policy.
+3. Classify as `keep`, `normalize`, `safe cleanup candidate`, or `needs owner confirmation`.
+4. Prefer precise deletion commands. Do not begin with broad `docker system prune -a`, recursive directory deletion, or wildcard removal.
+5. After cleanup, re-check containers, ports, disk space and important service endpoints.
 
-检查：
+## Never infer disposable
 
-- docker ps -a
-- docker images
-- docker volume ls
-- docker network ls
-- df -h
-- 磁盘目录占用
+Do not delete database files, uploads, certificates, environment files, active bind-mount targets, current images, or unknown project directories merely because a container is stopped. Named volumes may contain legacy data even though this standard prefers bind mounts.
 
-第二阶段：分析
-
-分类：
-
-- 保留
-- 整理
-- 删除候选
-
-第三阶段：执行
-
-删除前必须确认：
-
-- 是否生产业务
-- 是否有数据
-- 是否被其他服务依赖
-
-禁止直接删除：
-
-- 数据库文件
-- 上传文件
-- 配置文件
-- 运行中的业务
-
-## Output
-
-输出清理报告和预计释放空间。
+For detailed inspection guidance read `../../references/server-cleanup.md`.

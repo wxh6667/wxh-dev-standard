@@ -20,11 +20,9 @@
 
 ## Skills
 
-核心流程：`project-delivery-flow` → `project-discovery` → `project-init` → `requirement-analysis` / `architecture-review` → frontend/backend/database/api → `testing` / `debugging` → `git-workflow` → `docker-build` → `cnb-ci` → `deployment` → `delivery`。
+总入口是 `project-delivery-flow`。用户要求“走完全部流程”时，从项目扫描和 AI 上下文初始化开始，按需进入需求/架构、前端、后端、数据库/API、测试/调试、安全检查、Git、Docker、CNB、部署和最终交付。
 
-辅助 Skill 包括 `ai-context-init`、`agent-config-cleanup`、`server-cleanup` 和 `skill-authoring`。
-
-详见 [`skills/README.md`](skills/README.md)。
+辅助 Skill 包括 `agent-config-cleanup`（清理本机重复 AI 约束）、`server-cleanup`（清理部署服务器资源）和 `skill-authoring`（维护本 Skill 库）。完整目录和触发范围见 [`skills/README.md`](skills/README.md)。
 
 ## 目录
 
@@ -32,11 +30,28 @@
 skills/       按需触发的 Agent Skills
 references/   多个 Skill 共用的详细参考
 templates/    项目初始化、Docker、Compose、CNB 模板
+scripts/      Skill 库自身的校验工具
 AGENTS.md     维护本仓库时的规则
 ```
 
+旧的独立 `rules/` 方式已移除，避免同一约束同时存在于 rules、AGENTS 和 Skills 中。
+
 ## 使用方式
 
-把需要的 Skill 目录安装或复制到目标 AI 工具支持的 Skills 位置即可。若工具不支持自动发现，也可以直接让 Agent 阅读对应 `skills/<name>/SKILL.md` 后执行。
+把需要的 Skill 目录安装或复制到目标 AI 工具支持的 Skills 位置即可。若工具不支持自动发现，也可以直接让 Agent 阅读对应 `skills/<name>/SKILL.md` 后执行。不要把整个 `skills/` 内容复制成一个超长全局 prompt。
 
-对于一个已有项目，推荐直接要求：`按 project-delivery-flow 处理当前项目，先检查 CodeGraph/Trellis 项目级初始化，再完成代码、CNB 镜像和线上 compose 验证。`
+对于一个已有项目，可以直接要求：
+
+```text
+按 project-delivery-flow 处理当前项目：先分析现有代码和部署方式，检查 CodeGraph/Trellis 项目级初始化；前端和后台都完成真实验证；不要本地构建生产 Docker 镜像，使用 CNB 构建并推送；遵守一个独立业务运行类型一个最终自定义镜像；最后用 docker-compose.yml + .env 拉取启动并完成交付验收。
+```
+
+如果当前机器已经积累很多 `.agents/.claude/.codex/Cursor` 等重复约束，使用 `agent-config-cleanup`，而不是手工一把删掉。
+
+## 校验
+
+```bash
+python3 scripts/validate-skills.py
+```
+
+该脚本检查每个 Skill 的 `SKILL.md`、YAML frontmatter、`name` 和 `description`。Skill 格式和上游参考见 [`references/skill-format.md`](references/skill-format.md)。

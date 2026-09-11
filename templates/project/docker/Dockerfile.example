@@ -1,0 +1,23 @@
+# This is an intentionally generic skeleton. Adapt images and build commands to the real stack.
+# Keep the real file at docker/Dockerfile.
+
+# ---- build stage(s) ----
+FROM alpine:3.20 AS build
+WORKDIR /src
+COPY . .
+# RUN <existing project build command(s)>
+
+# ---- runtime stage ----
+FROM alpine:3.20
+WORKDIR /app
+# Install only runtime dependencies required by the real application.
+# COPY --from=build /src/<runtime-artifacts> /app/
+
+RUN mkdir -p /app/data /app/logs
+EXPOSE 8080
+
+# Replace with the project's existing runtime entrypoint/command.
+CMD ["sh", "-c", "echo 'Adapt docker/Dockerfile to the real project runtime' >&2; exit 1"]
+
+# Do not create separate frontend/backend/nginx custom images merely for technical layering
+# when they form one deployable business runtime type. Build them into the appropriate final image.

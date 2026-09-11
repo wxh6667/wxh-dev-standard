@@ -1,0 +1,19 @@
+# Project Instructions
+
+Keep this file project-specific. Reusable workflows should come from wxh-dev-standard Skills rather than being copied here.
+
+## Project facts
+
+- Start command: `<existing command>`
+- Test command: `<existing command>`
+- Frontend path: `<path or n/a>`
+- Backend path: `<path or n/a>`
+- Database/migrations: `<path or n/a>`
+- Production compose: `docker-compose.yml`
+- Production image: `registry.cn-shanghai.aliyuncs.com/heilaowang/<project>`
+
+## Working rules
+
+Read existing code and scripts before editing. Prefer modifying existing business/start/deploy logic over adding parallel replacements. Check project-level CodeGraph/Trellis initialization before broad changes when those tools are installed. Never commit secrets or machine-specific credentials.
+
+Keep only facts that differ for this project. Do not duplicate generic Docker/CNB/Git/testing workflows already supplied by Skills.

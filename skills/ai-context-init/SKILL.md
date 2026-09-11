@@ -1,6 +1,6 @@
 ---
 name: ai-context-init
-description: Prepare project-level AI context before significant coding. Use when CodeGraph, Trellis, Codex, Claude Code, or another coding agent enters a repository and project-specific indexing/rules may be missing or stale. Initialize installed project tools when needed and avoid duplicate global/project constraints.
+description: Prepare project-level AI context before significant coding. Use when CodeGraph, Trellis, Codex, Claude Code, or another coding agent enters a repository and project-specific indexing/rules may be missing or stale — 接手项目、进入代码库、初始化项目上下文、项目索引缺失、补装平台配置/hooks、初始化 CodeGraph 或 Trellis、缺少什么补什么时使用。Initialize installed project tools when needed and avoid duplicate global/project constraints.
 ---
 
 # AI Context Init

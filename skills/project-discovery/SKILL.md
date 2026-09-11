@@ -1,6 +1,6 @@
 ---
 name: project-discovery
-description: Inspect an unfamiliar software repository before changing it. Use when taking over code, estimating work, locating frontend/backend/database/deployment entry points, or determining what currently works and what should be preserved.
+description: Inspect an unfamiliar software repository before changing it. Use when taking over code, estimating work, locating frontend/backend/database/deployment entry points, or determining what currently works and what should be preserved — 熟悉陌生代码库、了解项目结构、梳理业务流程、评估改动范围时使用。
 ---
 
 # Project Discovery

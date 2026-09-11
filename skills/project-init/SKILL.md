@@ -1,6 +1,6 @@
 ---
 name: project-init
-description: Initialize a new or existing software project before implementation. Use when first entering a repo, taking over legacy code, or preparing an AI coding session. Inspect the existing structure, preserve working conventions, and ensure project-level AI context such as CodeGraph/Trellis is initialized before broad changes.
+description: Initialize a new or existing software project before implementation. Use when first entering a repo, taking over legacy code, or preparing an AI coding session — 首次进入仓库、接管旧项目、准备 AI 编码会话、项目初始化时使用。Inspect the existing structure, preserve working conventions, and ensure project-level AI context such as CodeGraph/Trellis is initialized before broad changes.
 ---
 
 # Project Init

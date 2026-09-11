@@ -38,7 +38,11 @@
 
 ## 项目工作流遵循
 
+进入项目先检测已装工具的项目级状态：项目有 `.trellis/` 时先跑 `python3 .trellis/scripts/task.py current` 确认活动任务；CodeGraph/Trellis 已安装但项目未初始化、或项目只装了其它平台的 glue(如有 `.codex/` 但当前平台 `.claude/` 缺失)时，直接按已装版本补装或初始化并验证，缺少什么就补什么，不因此停下等待指示。
+
 项目启用了 Trellis 时：每轮的 `<workflow-state>` 注入是行动指令，不是背景知识。没有活动任务就不执行 `git commit` 和成规模的代码改动，除非用户当轮明确豁免；是否创建任务由用户决定，必须真实提问而不是内心默认。
+
+有 `.trellis/` 的项目里禁止用会话任务系统(TaskCreate/TaskUpdate 等)另建平行任务清单，进度一律记入 Trellis 活动任务；会话任务系统只用于与 Trellis 无关的临时个人事务。创建 Trellis 任务后，计划(prd/design)必须先给用户确认，用户同意后才能开始改代码；不要创建完就自行推进实现。
 
 ## 主机资源保护
 

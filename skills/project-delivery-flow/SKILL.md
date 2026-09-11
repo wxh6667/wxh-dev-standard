@@ -1,6 +1,6 @@
 ---
 name: project-delivery-flow
-description: Execute an end-to-end software delivery when the user asks to 走完全部流程, 完整交付, finish the whole project, or take frontend and backend through build and production. Cover discovery, implementation, testing, Git, CNB image build, Docker Compose deployment, and final verification.
+description: Execute an end-to-end software delivery when the user asks to 走完全部流程, 完整交付, finish the whole project, or take frontend and backend through build and production — 走流程、完整走一遍业务、全流程验收、浏览器走查全部业务、上线交付时使用。Cover discovery, implementation, testing, Git, CNB image build, Docker Compose deployment, and final verification.
 ---
 
 # Project Delivery Flow

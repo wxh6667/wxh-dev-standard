@@ -1,34 +1,23 @@
-# CNB CI Skill
+---
+name: cnb-ci
+description: Build and publish production Docker images with CNB. Use when creating or fixing .cnb.yml, publishing to registry.cn-shanghai.aliyuncs.com/heilaowang, or validating a production image without building it on the developer machine.
+---
 
-## Purpose
+# CNB CI
 
-通过 CNB 完成自动构建和镜像发布。
-
-## Workflow
-
-```
-Git Push
- ↓
-CNB Build
- ↓
-Docker Image
- ↓
-Registry Push
- ↓
-Server Pull
-```
+Production build path: `git push -> CNB -> docker build/buildx -> registry -> server pull`.
 
 ## Rules
 
-禁止：
+- Keep `.cnb.yml` in the repository root and Docker build files under `docker/`.
+- Use CNB's Docker service when the pipeline needs `docker build`, `buildx`, `login` or `push`.
+- Default image namespace is `registry.cn-shanghai.aliyuncs.com/heilaowang/<project>` unless the project specifies another target.
+- Registry username/password/token must come from CNB secrets/imported secure variables. Never commit them.
+- Publish an immutable version tag derived from the commit/version when practical and optionally update `latest` after a successful build.
+- Do not work around CI failures by building the production image locally. Read the failing stage, fix code/config, commit, push and rerun CNB until it passes.
 
-- 本地 docker build 作为生产流程
-- 手工复制部署包
+## Validation
 
-## Output
+Confirm the pipeline built the intended business image, pushed the expected tags, and the remote registry image can be pulled by the deployment host. If frontend/backend are part of the same business runtime image, verify both were built into that image.
 
-提供：
-
-- 构建结果
-- 镜像地址
-- 版本信息
+Use `../../templates/project/.cnb.yml.example` as a starting point, then adapt build commands to the real project rather than forcing the template unchanged.

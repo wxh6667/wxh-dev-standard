@@ -16,7 +16,7 @@
 - 多份 `.agents/rules/*.md` 与 `.codex/rules/*.md`
 - `/root/.codex/gpt-5.5-base-instructions.md`
 
-`/root/AGENTS.md` 与 `/root/.codex/AGENTS.md` 都包含语言表达、协作方式、Trellis、调试、代码质量、结构性修改、规划、测试、安全、Skill/MCP、构建资源限制、Context7、FastCtx 和 CodeGraph 等多类内容。它们不应再整份跨机器复制，因为其中既有稳定行为偏好，也有已经由 Skill/MCP 承接的流程，还有当前机器特有的资源限制。
+`/root/AGENTS.md` 与 `/root/.codex/AGENTS.md` 都包含语言表达、协作方式、Trellis、调试、代码质量、结构性修改、规划、测试、安全、Skill/MCP、构建资源限制、Context7、FastCtx 和 CodeGraph 等多类内容。它们不应再整份跨机器复制，因为其中既有稳定行为偏好，也有已经由 Skill/MCP 承接的流程。
 
 迁移后的规则：
 
@@ -29,7 +29,7 @@
 - Docker / CNB / 部署 -> 对应 Skills。
 - Context7 使用规则 -> Context7 Skill + MCP，不再写进全局提示词。
 - FastCtx 使用规则 -> MCP/本机工具配置，不作为跨机器通用提示词。
-- 本机 Maven/Docker CPU、内存、Buildx builder 限制 -> 当前主机本地策略，不跨机器同步。
+- 原来的 `systemd-run` 固定 2 CPU/2 GiB 与 `codex-limited` Docker builder 固定 3 GiB/2 CPU 不再作为标准；真正要保留的是跨机器资源保护目标：执行 Maven/Gradle、测试、Docker 等重任务时，尽量保证主机仍有约 **2 GiB `MemAvailable` 余量**。具体规则见 `references/host-resource-guard.md`。
 
 `/root/.codex/gpt-5.5-base-instructions.md` 与 `/root/.agents/rules/base-instructions.md` 内容完全相同，属于重复基础提示词；不作为个人全局指令迁入本仓库。
 
@@ -116,7 +116,9 @@ MCP 的可移植定义可以保存在本仓库，但真实 API Key、Token、OAu
 - 插件缓存；
 - CodeGraph/Trellis 生成索引；
 - 绝对机器路径；
-- 当前机器独有的代理、资源限制和临时配置。
+- 当前机器独有的代理和临时配置。
+
+主机“至少保留约 2 GiB 可用内存余量”的资源保护目标属于可跨机器同步的长期规则，但具体限流实现、CPU 配额、builder 名称和 cgroup 参数仍然属于机器本地实现，不强制同步。
 
 如果原始 zip 曾被发送到不受信任位置，应单独轮换其中包含的真实凭证。
 

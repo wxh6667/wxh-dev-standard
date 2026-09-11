@@ -56,4 +56,17 @@ Codex 侧的 per-tool 审批配置（如 `playwright.tools.browser_close.approva
 
 ## 与 Skills / Global Instructions 的边界
 
-MCP 提供工具能力，Skill 决定什么时候、如何使用工具，全局指令只保留稳定协作偏好。例如 Context7 的“何时查库文档”由 Skill 承接，Context7 MCP 本身只负责提供查询能力；CodeGraph 的项目初始化由 `ai-context-init` 承接，MCP 配置只负责让 `codegraph` 工具可调用。
+MCP 提供工具能力，Skill 决定什么时候、如何使用工具，全局指令只保留稳定协作偏好。原全局环境中的 MCP 调用策略已经抽离到 Skills，因此每个 MCP 的"用法"以承接 Skill 为准，不在全局提示词或 MCP 配置里重复。完整对照：
+
+| MCP | 承接流程的 Skill | 说明 |
+|---|---|---|
+| context7 | `context7-docs` | 何时查库文档、如何解析 library ID 全部在 Skill 中；MCP 只提供查询工具 |
+| codegraph | `ai-context-init`（`project-init`、`agent-config-cleanup` 关联） | 项目级初始化/索引流程在 Skill 中；MCP 只让 `codegraph` 工具可调用 |
+| playwright | 无专门 Skill，`delivery` / `deployment` 的"验证真实页面/API 路径"是它的主要使用场景 | 纯工具能力，安装即用 |
+| figma-bridge | 无 | 纯工具能力（设计稿到代码桥接），按需使用 |
+| sequential-thinking | 无 | 纯工具能力（结构化推理），按需使用 |
+| mcp-server-time | 无 | 纯工具能力（时间/时区查询），按需使用 |
+| openaiDeveloperDocs | 无；`context7-docs` 的兜底原则（优先一手文档）适用于它 | OpenAI 官方远程文档，与 context7 来源不同、互不替代 |
+| awslabs.document-loader | 无 | Claude 侧独有的文档读取能力（PDF/Word/Excel/PPT） |
+
+被抽离进 Skills 的是**调用策略**，不是工具本体：`context7-docs` 和 `ai-context-init` 只承接"何时、如何用"，对应的 MCP 仍必须安装，否则 Skill 没有可调用的工具。反之，Skill 中不重复编写 MCP 的内置说明或调用参数细节，避免同一事实出现两个来源。

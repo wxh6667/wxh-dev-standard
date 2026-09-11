@@ -13,11 +13,11 @@ skill-name/
 └── agents/           # optional host metadata
 ```
 
-`SKILL.md` 的 `name` 和 `description` 用于发现和隐式触发。当前任务命中 description 后，Agent 应自行加载正文并直接执行，而不是先把 Skill 内容展示给用户，也不要求用户再次手工输入 Skill 名称。正文只写执行时真正需要的工作流、检查点和完成标准。
+`SKILL.md` 的 `name` 和 `description` 用于发现和隐式触发。当前任务命中 description 后，Agent 应自行加载正文并直接执行，而不是先把 Skill 内容展示给用户，也不要求用户再次手工输入 Skill 名称。
 
 ## 端到端入口
 
-- `project-delivery-flow`：用户说“走完全部流程”、完整交付、前后台都跑通时自动匹配；按需编排下面的 Skills。
+- `project-delivery-flow`：用户说“走完全部流程”、完整交付、前后台都跑通时自动匹配；如果项目有 Trellis，则把阶段映射进项目的 Trellis 状态，不建立第二套并行顶层流程。
 
 ## 项目理解与设计
 
@@ -29,10 +29,14 @@ skill-name/
 
 ## 实现
 
-- `frontend-development`：前端页面、状态、接口接入和构建验证。
-- `backend-development`：后端业务、权限、配置、任务和运行验证。
+- `frontend-development`：前端页面、状态、接口接入和构建验证；复杂页面按需读取旧前端 workflow 提炼出的质量检查 reference。
+- `backend-development`：后端业务、权限、事务、幂等、外部调用和运行验证；高风险写入/授权/性能场景按需读取旧后端 workflow 提炼出的质量检查 reference。
 - `database`：数据库结构、迁移、查询和数据安全。
 - `api-design`：前后端/APP/第三方接口契约。
+
+## 文档与工具
+
+- `context7-docs`：当任务依赖库、框架、SDK、API、CLI、云服务或版本特定语法时，在 Context7 MCP 可用的情况下查询当前文档，而不是依赖模型记忆。
 
 ## 验证
 
@@ -48,27 +52,23 @@ skill-name/
 - `deployment`：使用 `docker-compose.yml + .env` 拉取并启动线上服务。
 - `delivery`：最终交付验收。
 
-## 全局 Skill 维护
+## 全局环境维护
 
-- `skill-library-maintenance`：用户说“更新 Skill / 同步开发规范 / 修复全局 Skill 安装”时自动维护 `wxh-dev-standard`，执行安全更新、同步新 Skill 和验证，不把更新命令当教程丢给用户。
-- `agent-config-cleanup`：清理本机/主机里重复的 `.agents/.claude/.codex/Cursor/CodeGraph/Trellis` 规则和 Skills，区分全局、项目级、Skill 和删除候选。
+- `skill-library-maintenance`：用户说“更新 Skill / 更新开发环境 / 同步开发规范”时，更新仓库、同步全局 AGENTS/CLAUDE、同步新增 Skill、校验，并安全检查 MCP 基线差异。MCP 只能合并对应配置，不能覆盖整份 Codex `config.toml`。
+- `agent-config-cleanup`：清理重复的全局/项目 AI 约束和失效 Skill，区分可删除内容与独立能力。
 - `server-cleanup`：清理 Docker、日志和废弃部署资产；不要拿它清 AI 约束。
 - `skill-authoring`：新增/修改本仓库 Skill 时使用。
 
 ## 全局安装
 
-首次安装和以后更新统一见仓库根目录 `INSTALL.md`。Codex 推荐把这套库安装到 `$HOME/.agents/skills`，对当前系统用户的全部项目生效；共享 Linux 主机如果需要所有用户共同使用，可安装到 `/etc/codex/skills`。
+首次安装、旧环境迁移和以后更新见仓库根目录 `INSTALL.md`。Codex 当前用户跨项目 Skill 的标准位置是 `$HOME/.agents/skills`；Codex 全局开发指令则由 `~/.codex/AGENTS.md` 单独承载。两者不是一回事。
 
-不要为了“全局”把所有正文拼成一个巨大 prompt。全局指的是**所有 Skill 都可被发现**，不是所有 Skill 的完整内容每轮都加载。正确方式仍然是根据 `description` 渐进加载。
+不要为了“全局”把所有正文拼成一个巨大 prompt。全局指的是 Skills 对该用户所有项目可发现；完整 Skill 内容仍按 `description` 渐进加载。
 
 ## 维护
-
-运行：
 
 ```bash
 python scripts/validate-skills.py
 ```
 
 检查每个 Skill 是否存在 `SKILL.md`、YAML frontmatter、`name` 和 `description`。格式说明见 `references/skill-format.md`。
-
-原则始终是“少而准”：触发条件写进 `description`，命中后直接执行；复杂命令、风险说明和长模板放到 `references/` 或 `templates/`。

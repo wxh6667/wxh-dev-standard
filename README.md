@@ -37,7 +37,7 @@ Codex 和 Claude Code 分别安装、分别更新，不要求同时存在，也�
 - Docker 构建相关文件放在项目 `docker/`；线上尽量只依赖 `docker-compose.yml + .env` 拉取并启动。
 - `.env` 默认尽量只暴露必要端口等少量运行参数；密钥、Token 和真实凭证不得提交。
 - 持久化优先使用宿主机 bind mount，不创建无必要 named volume。
-- Maven/Gradle、完整测试、本地 Docker 构建等重任务执行时，**主机应尽量始终保留约 2 GiB 可用内存余量**。这不是把构建任务限制为 2 GiB，也不再默认固定 2 CPU / 2 GiB cgroup 或 3 GiB builder；详细规则见 [`references/host-resource-guard.md`](references/host-resource-guard.md)。
+- Maven/Gradle、完整测试、本地 Docker 构建等重任务执行时，**主机必须以至少约 2 GiB 可用内存作为安全底线**。这不是把构建任务限制为 2 GiB；CPU、JVM/Node 内存、并发和 cgroup/builder 配额按当前机器动态决定。详细规则见 [`references/host-resource-guard.md`](references/host-resource-guard.md)。
 - 构建、启动、接口或页面出现真实问题时闭环定位、修复、重新验证，不通过跳过步骤或伪成功完成任务。
 
 ## Codex 安装

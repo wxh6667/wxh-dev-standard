@@ -2,7 +2,7 @@
 
 面向个人工作室与 AI Coding 的轻量项目研发、构建、部署和交付 Skill 库。
 
-本仓库不是把所有规则永久塞给 AI，而是把高频流程拆成可按需加载的 Agent Skills。每个 Skill 只负责一个明确任务，`SKILL.md` 保持简洁，复杂说明放到 `references/`，模板放到 `templates/`。
+本仓库不是某个业务项目自己的规则目录，而是一套 **全局安装、跨项目复用、按任务自动加载** 的 Agent Skills。每个 Skill 只负责一个明确任务，`SKILL.md` 保持简洁，复杂说明放到 `references/`，模板放到 `templates/`。
 
 ## 默认原则
 
@@ -18,6 +18,39 @@
 - 密钥、Token、真实 `.env`、本地 Git 凭证和工具缓存不得提交。
 - 发现构建、启动、接口或页面问题时要闭环修复并重新验证，不能通过跳过步骤假装完成。
 
+## 全局使用方式
+
+本仓库默认 **不复制到每个项目**。推荐 clone 一份作为唯一源码，然后链接到 Agent 的全局 Skill 发现目录。
+
+Codex 当前用户全局安装：
+
+```bash
+git clone https://github.com/wxh6667/wxh-dev-standard.git ~/.wxh-dev-standard
+python ~/.wxh-dev-standard/scripts/sync-skills.py --codex
+```
+
+以后更新：
+
+```bash
+python ~/.wxh-dev-standard/scripts/sync-skills.py --codex --update
+```
+
+Windows PowerShell 将 `~/.wxh-dev-standard` 换成 `$HOME\.wxh-dev-standard` 即可。Linux 共享开发机如果需要真正机器级、所有用户共用，可以安装到 Codex 的 `/etc/codex/skills` ADMIN scope。
+
+完整安装、更新、Codex/Claude Code 全局路径和验证方法见 [`INSTALL.md`](INSTALL.md)。
+
+## 自动加载
+
+正常工作时不要让用户记 Skill 名称，也不要先输出“应该怎么使用 Skill”的说明。Agent 应根据每个 `SKILL.md` 的 `description` 自动匹配当前任务，命中后自行加载完整 Skill 并直接执行。
+
+例如用户只说：
+
+```text
+走完这个项目全部流程，前端后台都验证，生产 Docker 走 CNB，最后部署验收。
+```
+
+应自动进入 `project-delivery-flow`，再按需要加载项目初始化、前后端、测试、Git、Docker、CNB、部署和交付等 Skills；不要求用户再次输入 Skill 名称。
+
 ## Skills
 
 总入口是 `project-delivery-flow`。用户要求“走完全部流程”时，从项目扫描和 AI 上下文初始化开始，按需进入需求/架构、前端、后端、数据库/API、测试/调试、安全检查、Git、Docker、CNB、部署和最终交付。
@@ -27,31 +60,20 @@
 ## 目录
 
 ```text
-skills/       按需触发的 Agent Skills
+skills/       全局安装后按需触发的 Agent Skills
 references/   多个 Skill 共用的详细参考
 templates/    项目初始化、Docker、Compose、CNB 模板
-scripts/      Skill 库自身的校验工具
-AGENTS.md     维护本仓库时的规则
+scripts/      安装/更新链接与 Skill 库校验工具
+AGENTS.md     维护本仓库自身时的规则
+INSTALL.md    全局安装、更新和自动加载说明
 ```
 
-旧的独立 `rules/` 方式已移除，避免同一约束同时存在于 rules、AGENTS 和 Skills 中。
-
-## 使用方式
-
-把需要的 Skill 目录安装或复制到目标 AI 工具支持的 Skills 位置即可。若工具不支持自动发现，也可以直接让 Agent 阅读对应 `skills/<name>/SKILL.md` 后执行。不要把整个 `skills/` 内容复制成一个超长全局 prompt。
-
-对于一个已有项目，可以直接要求：
-
-```text
-按 project-delivery-flow 处理当前项目：先分析现有代码和部署方式，检查 CodeGraph/Trellis 项目级初始化；前端和后台都完成真实验证；不要本地构建生产 Docker 镜像，使用 CNB 构建并推送；遵守一个独立业务运行类型一个最终自定义镜像；最后用 docker-compose.yml + .env 拉取启动并完成交付验收。
-```
-
-如果当前机器已经积累很多 `.agents/.claude/.codex/Cursor` 等重复约束，使用 `agent-config-cleanup`，而不是手工一把删掉。
+`AGENTS.md` 只约束维护 **本仓库本身**，不会要求业务项目复制它。业务项目自己的需求、CodeGraph/Trellis 初始化结果和项目级特殊规则继续保留在各项目内；跨项目通用开发流程由这里的全局 Skills 提供。
 
 ## 校验
 
 ```bash
-python3 scripts/validate-skills.py
+python ~/.wxh-dev-standard/scripts/validate-skills.py
 ```
 
 该脚本检查每个 Skill 的 `SKILL.md`、YAML frontmatter、`name` 和 `description`。Skill 格式和上游参考见 [`references/skill-format.md`](references/skill-format.md)。

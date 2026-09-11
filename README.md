@@ -1,79 +1,84 @@
 # wxh-dev-standard
 
-面向个人工作室与 AI Coding 的轻量项目研发、构建、部署和交付 Skill 库。
+面向个人开发环境的 Codex 优先、Claude Code 兼容的全局 AI Coding 配置库。
 
-本仓库不是某个业务项目自己的规则目录，而是一套 **全局安装、跨项目复用、按任务自动加载** 的 Agent Skills。每个 Skill 只负责一个明确任务，`SKILL.md` 保持简洁，复杂说明放到 `references/`，模板放到 `templates/`。
+本仓库同步三类东西：
 
-## 默认原则
+1. `global/`：跨项目长期生效的全局开发指令；
+2. `skills/`：按任务自动发现和加载的可复用执行流程；
+3. `mcp/`：跨机器可复用、但必须安全合并的 MCP 基线。
 
-- 先理解项目，再修改代码；优先复用已有结构、已有脚本和已有业务逻辑。
-- 项目级 AI 上下文必须可用。CodeGraph、Trellis 已安装但项目未初始化时，应先完成项目级初始化。
-- 同一可交付业务运行类型默认只维护 **1 个自定义业务镜像**；不要因为 frontend/backend/nginx 技术分层就自动拆成多个自定义镜像。只有明确需要独立部署、独立扩缩容的运行类型才单独成镜像。MySQL、Redis 等官方基础设施镜像不计入此限制。
-- 生产镜像不在开发机本地构建；默认通过 CNB 构建并推送到镜像仓库。
-- 默认镜像前缀：`registry.cn-shanghai.aliyuncs.com/heilaowang/<project>`。
-- Docker 相关构建文件放在 `docker/`；仓库根目录保留 `.cnb.yml`、`docker-compose.yml` 和环境文件。
-- 线上尽量做到仅凭 `docker-compose.yml + .env` 即可拉取镜像并启动。
-- `.env` 默认尽量只保留 `PORT`；只有业务确实需要运行时配置时才增加变量。
-- 持久化数据优先使用宿主机 bind mount，例如 `./data:/app/data`，不创建无必要 named volume。
-- 密钥、Token、真实 `.env`、本地 Git 凭证和工具缓存不得提交。
-- 发现构建、启动、接口或页面问题时要闭环修复并重新验证，不能通过跳过步骤假装完成。
+具体业务项目自己的需求、架构、数据库说明、项目 `AGENTS.md`、Docker/CNB 文件以及 CodeGraph/Trellis 项目状态继续留在各项目中。
 
-## 全局使用方式
+## 为什么不用一个巨大“系统提示词”
 
-本仓库默认 **不复制到每个项目**。推荐 clone 一份作为唯一源码，然后链接到 Agent 的全局 Skill 发现目录。
+Codex CLI/IDE 真正的用户全局指令入口是 `~/.codex/AGENTS.md`，不是本仓库中一个任意命名的 `SYSTEM-PROMPT.md`。因此本仓库把可同步的 Codex 全局指令直接维护在 [`global/codex/AGENTS.md`](global/codex/AGENTS.md)，安装时同步到官方入口。
 
-Codex 当前用户全局安装：
+全局指令只保留稳定行为，例如中文沟通、优先实际执行、基于证据判断、最小化无关改动、安全边界以及 Skill 自动加载。需求分析、前后端、测试、Git、Docker、CNB、部署、CodeGraph/Trellis 等具体流程放进 Skills，避免每次会话都加载一整套长规则。
+
+## 核心交付约定
+
+- 修改现有项目先理解真实结构和业务，优先复用已有代码、脚本和部署方式。
+- CodeGraph、Trellis 已安装但当前项目未初始化时，由项目初始化相关 Skill 完成项目级初始化。
+- 同一可交付业务运行类型默认维护 **1 个最终自定义业务镜像**；不要仅因为 frontend/backend/nginx 技术分层就自动拆多个自定义镜像。真正独立部署、独立扩缩容的业务运行类型可以独立镜像；MySQL、Redis 等基础设施官方镜像不计入该限制。
+- 生产业务镜像默认由 CNB 构建，不以本机 `docker build` 作为生产交付路径。
+- 默认 Registry 前缀：`registry.cn-shanghai.aliyuncs.com/heilaowang/<project>`。
+- Docker 构建相关文件放在项目 `docker/`；线上尽量只依赖 `docker-compose.yml + .env` 拉取并启动。
+- `.env` 默认尽量只暴露必要端口等少量运行参数；密钥、Token 和真实凭证不得提交。
+- 持久化优先使用宿主机 bind mount，不创建无必要 named volume。
+- 构建、启动、接口或页面出现真实问题时闭环定位、修复、重新验证，不通过跳过步骤或伪成功完成任务。
+
+## 安装
+
+最推荐直接把 [`INSTALL.md`](INSTALL.md) 中的自然语言安装说明交给 Codex，让它先检查旧环境、备份、安装全局 AGENTS、同步 Skills、合并 MCP 并完成实际验证。
+
+手工最小安装（Codex）：
 
 ```bash
 git clone https://github.com/wxh6667/wxh-dev-standard.git ~/.wxh-dev-standard
-python ~/.wxh-dev-standard/scripts/sync-skills.py --codex
+python3 ~/.wxh-dev-standard/scripts/sync-global-instructions.py --codex
+python3 ~/.wxh-dev-standard/scripts/sync-skills.py --codex
+python3 ~/.wxh-dev-standard/scripts/validate-skills.py
 ```
 
-以后更新：
-
-```bash
-python ~/.wxh-dev-standard/scripts/sync-skills.py --codex --update
-```
-
-Windows PowerShell 将 `~/.wxh-dev-standard` 换成 `$HOME\.wxh-dev-standard` 即可。Linux 共享开发机如果需要真正机器级、所有用户共用，可以安装到 Codex 的 `/etc/codex/skills` ADMIN scope。
-
-完整安装、更新、Codex/Claude Code 全局路径和验证方法见 [`INSTALL.md`](INSTALL.md)。
+MCP 不使用文件覆盖方式安装，按 [`mcp/README.md`](mcp/README.md) 合并到现有 `~/.codex/config.toml`。
 
 ## 自动加载
 
-正常工作时不要让用户记 Skill 名称，也不要先输出“应该怎么使用 Skill”的说明。Agent 应根据每个 `SKILL.md` 的 `description` 自动匹配当前任务，命中后自行加载完整 Skill 并直接执行。
+正常使用时用户只描述实际任务，不需要说“加载 xxx Skill”。Skill 的 `description` 负责发现，命中后 Agent 自行读取完整 `SKILL.md` 并执行。
 
-例如用户只说：
+例如：
 
 ```text
-走完这个项目全部流程，前端后台都验证，生产 Docker 走 CNB，最后部署验收。
+走完这个项目全部流程，前端后台都验证，生产 Docker 不本地构建，走 CNB，最后部署验收。
 ```
 
-应自动进入 `project-delivery-flow`，再按需要加载项目初始化、前后端、测试、Git、Docker、CNB、部署和交付等 Skills；不要求用户再次输入 Skill 名称。
+应自动匹配 `project-delivery-flow`，再按阶段加载真正需要的项目初始化、前后端、测试、Git、Docker、CNB、部署和交付 Skill，而不是把所有规则一次性塞入上下文。
 
-## Skills
+## 原环境备份迁移
 
-总入口是 `project-delivery-flow`。用户要求“走完全部流程”时，从项目扫描和 AI 上下文初始化开始，按需进入需求/架构、前端、后端、数据库/API、测试/调试、安全检查、Git、Docker、CNB、部署和最终交付。
-
-辅助 Skill 包括 `agent-config-cleanup`（清理本机重复 AI 约束）、`server-cleanup`（清理部署服务器资源）和 `skill-authoring`（维护本 Skill 库）。完整目录和触发范围见 [`skills/README.md`](skills/README.md)。
+用户提供的 2026-09-10 Linux AI Coding 环境 zip 已做脱敏盘点，见 [`migration/ZIP-BACKUP-2026-09-10.md`](migration/ZIP-BACKUP-2026-09-10.md)。原备份里的全局 AGENTS、旧 frontend/backend workflow、独立 Skills、Codex 系统 Skills、MCP 和机器本地策略已经分类，真实凭证和 session 不进入本公开仓库。
 
 ## 目录
 
 ```text
-skills/       全局安装后按需触发的 Agent Skills
+global/       Codex/Claude 跨项目全局指令源
+skills/       按任务自动触发的 Agent Skills
+mcp/          脱敏 MCP 基线与安全合并说明
+migration/    原环境备份的脱敏盘点与迁移说明
 references/   多个 Skill 共用的详细参考
-templates/    项目初始化、Docker、Compose、CNB 模板
-scripts/      安装/更新链接与 Skill 库校验工具
-AGENTS.md     维护本仓库自身时的规则
-INSTALL.md    全局安装、更新和自动加载说明
+templates/    项目 Docker / Compose / CNB 等模板
+scripts/      全局指令、Skill 同步与校验工具
+AGENTS.md     仅用于维护本仓库自身
+INSTALL.md    自然语言优先的安装/更新说明
 ```
 
-`AGENTS.md` 只约束维护 **本仓库本身**，不会要求业务项目复制它。业务项目自己的需求、CodeGraph/Trellis 初始化结果和项目级特殊规则继续保留在各项目内；跨项目通用开发流程由这里的全局 Skills 提供。
+## 更新
 
-## 校验
+安装完成后可以直接对 Codex 说：
 
-```bash
-python ~/.wxh-dev-standard/scripts/validate-skills.py
+```text
+更新我的 wxh-dev-standard 全局开发环境。
 ```
 
-该脚本检查每个 Skill 的 `SKILL.md`、YAML frontmatter、`name` 和 `description`。Skill 格式和上游参考见 [`references/skill-format.md`](references/skill-format.md)。
+`skill-library-maintenance` 应更新仓库、同步全局 AGENTS 和新增 Skills、校验 Skill，并安全检查 MCP 基线差异。MCP 永远只合并对应表项，不覆盖整个 `config.toml`。

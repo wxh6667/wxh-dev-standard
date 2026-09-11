@@ -1,122 +1,189 @@
-# 安装、更新与自动加载
+# 全局安装、更新与自动加载
 
-本仓库推荐使用 **“Git 仓库作为唯一源码 + Agent Skills 目录建立链接”** 的方式安装。
+`wxh-dev-standard` 的定位是 **全局开发 Skill 库**。安装一次后，本机当前用户的所有项目都应该能够发现并使用这些 Skills；不要把整套 Skill 复制进每个业务项目。
 
-这样做的好处是：Skill 不需要复制多份，更新只需要 `git pull`；Codex / Claude Code 仍然从各自的标准 Skills 目录发现它们，并根据 `SKILL.md` 的 `description` 自动选择需要的 Skill。
+Codex 官方区分多个作用域：项目内 `.agents/skills` 属于 REPO scope，`$HOME/.agents/skills` 属于 USER scope，适用于当前用户处理的任何仓库；Linux / 容器上的 `/etc/codex/skills` 属于 ADMIN scope，可作为机器级共享位置。本仓库默认使用“当前用户全局”方式，因为它同时适用于 Windows、macOS、Linux，而且已经覆盖所有项目。需要整台 Linux 主机所有用户共用时，再使用 ADMIN 安装。
 
-## 推荐安装位置
+## 1. 首次安装
 
-先把仓库固定到用户目录：
+把仓库固定 clone 一份即可：
 
 ```bash
 git clone https://github.com/wxh6667/wxh-dev-standard.git ~/.wxh-dev-standard
 ```
 
-如果已经 clone 过，不要重复 clone，直接执行后面的更新命令。
-
-## 一次安装到 Codex + Claude Code
-
-仓库提供跨平台同步脚本：
-
-```bash
-python ~/.wxh-dev-standard/scripts/sync-skills.py --all
-```
-
-Windows PowerShell 也可以使用：
+Windows PowerShell：
 
 ```powershell
-python "$HOME\.wxh-dev-standard\scripts\sync-skills.py" --all
+git clone https://github.com/wxh6667/wxh-dev-standard.git "$HOME\.wxh-dev-standard"
 ```
 
-脚本只为缺失的 Skill 创建链接，不覆盖同名的真实目录或未知文件。
+然后执行全局安装。
 
-默认目标：
-
-- Codex：`$HOME/.agents/skills/<skill-name>/SKILL.md`
-- Claude Code：`$HOME/.claude/skills/<skill-name>/SKILL.md`
-
-Codex 和 Claude Code 都支持链接到其它目录的 Skill，因此仓库仍然只有一份源码。
-
-只安装到 Codex：
+### Codex：当前用户全局，推荐
 
 ```bash
 python ~/.wxh-dev-standard/scripts/sync-skills.py --codex
 ```
 
-只安装到 Claude Code：
+Windows PowerShell：
+
+```powershell
+python "$HOME\.wxh-dev-standard\scripts\sync-skills.py" --codex
+```
+
+最终发现位置：
+
+```text
+$HOME/.agents/skills/<skill-name>/SKILL.md
+```
+
+这里虽然在 Codex 文档中叫 USER scope，但它不是“某个项目自己的 Skill”，而是 **当前系统用户全局，对所有仓库生效**。
+
+### Codex：Linux 真正机器级 / 所有用户共享
+
+如果这是共享 Linux 开发机或容器，并且希望所有系统用户都获得同一套 Skill：
+
+```bash
+sudo python ~/.wxh-dev-standard/scripts/sync-skills.py --admin
+```
+
+目标位置：
+
+```text
+/etc/codex/skills
+```
+
+Windows 本机不要使用这个模式；使用 `$HOME/.agents/skills` 即可覆盖当前用户的全部项目。
+
+### Claude Code：当前用户全局
+
+如果本机同时使用 Claude Code：
 
 ```bash
 python ~/.wxh-dev-standard/scripts/sync-skills.py --claude
 ```
 
-安装完成后建议开启一个新 Agent 会话。Codex 通常可以自动检测 Skill 变化；如果新 Skill 没出现，重启 Codex。Claude Code 新会话会从个人 Skills 目录重新发现可用 Skill。
+目标位置：
 
-## 更新
+```text
+$HOME/.claude/skills
+```
 
-以后仓库有更新，只需要：
+同时安装 Codex + Claude Code 当前用户全局 Skill：
 
 ```bash
-git -C ~/.wxh-dev-standard pull --ff-only
 python ~/.wxh-dev-standard/scripts/sync-skills.py --all
+```
+
+脚本采用链接方式，不复制多份源码。它不会覆盖已经存在但不属于本仓库的同名真实目录；发现冲突会保留原内容并报告。
+
+## 2. 更新 Skill
+
+以后 `wxh-dev-standard` 有更新，不需要逐个复制 Skill。执行：
+
+```bash
+python ~/.wxh-dev-standard/scripts/sync-skills.py --codex --update
 python ~/.wxh-dev-standard/scripts/validate-skills.py
 ```
 
-Windows PowerShell：
+如果同时安装 Claude Code：
 
-```powershell
-git -C "$HOME\.wxh-dev-standard" pull --ff-only
-python "$HOME\.wxh-dev-standard\scripts\sync-skills.py" --all
-python "$HOME\.wxh-dev-standard\scripts\validate-skills.py"
+```bash
+python ~/.wxh-dev-standard/scripts/sync-skills.py --all --update
+python ~/.wxh-dev-standard/scripts/validate-skills.py
 ```
 
-为什么更新后还要再运行一次 `sync-skills.py`：已有 Skill 的链接会直接看到最新文件，但仓库新增加的 Skill 需要创建新的链接。
+`--update` 内部只执行：
 
-`git pull --ff-only` 不会强制覆盖你的本地修改；如果仓库目录有未提交修改导致更新失败，应先检查差异，不要直接 reset 或删除。
+```bash
+git pull --ff-only
+```
 
-## 验证是否安装成功
+它不会用 `reset --hard` 强制覆盖本地修改。已有 Skill 因为是链接，会立即看到更新后的内容；再次同步的主要作用是为仓库中新增加的 Skill 建立链接。
 
-检查链接目录：
+Linux 机器级 ADMIN 安装更新后，如果新增了 Skill，再执行：
+
+```bash
+sudo python ~/.wxh-dev-standard/scripts/sync-skills.py --admin
+```
+
+## 3. 自动加载，而不是让我手工调用
+
+正常使用时，不需要输入：
+
+```text
+请先读取 wxh-dev-standard
+请使用 project-delivery-flow
+请加载 docker-build skill
+```
+
+也不应该让 Agent 先回复一段“这个 Skill 应该怎么使用”。
+
+Agent Skills 本身支持 **implicit invocation（隐式调用）**。Codex 会先发现每个 Skill 的 `name` 和 `description`，当前任务与 `description` 匹配时，再自行读取对应完整 `SKILL.md`。Codex 的 `allow_implicit_invocation` 默认就是 `true`。
+
+因此你只需要直接说实际任务，例如：
+
+```text
+走完这个项目全部流程，前端后台都验证，生产 Docker 不要本地构建，走 CNB，最后部署验收。
+```
+
+Codex 应自行命中 `project-delivery-flow`，然后根据任务继续读取项目初始化、前后端、测试、Git、Docker、CNB、部署等需要的 Skills。
+
+或者直接说：
+
+```text
+把当前机器重复、失效的 AI Coding 约束清理掉。
+```
+
+它应该自行命中 `agent-config-cleanup`，而不是要求你再手工指定 Skill 名称。
+
+## 4. Skill 的运行行为
+
+本仓库中的 Skill 是 **执行规则**，不是给用户看的教程。匹配到 Skill 后，Agent 应直接使用它完成当前任务。
+
+默认行为：
+
+- 自己判断并加载匹配的 Skill；
+- 自己读取需要的 `references/`、模板和辅助文件；
+- 不要求用户重复输入 Skill 名称；
+- 不先展示整个 Skill 内容；
+- 不把内部流程改写成“你接下来应该执行这些命令”，如果当前 Agent 本身有权限执行，就直接执行；
+- 只有用户明确询问 Skill 如何安装、为什么没有触发、Skill 中具体写了什么时，才解释 Skill 机制；
+- 删除数据、覆盖生产环境等真正高风险操作仍遵守对应 Skill 的安全边界。
+
+## 5. 为什么不做项目级安装
+
+这套库描述的是跨项目复用的开发和交付流程，因此默认不在每个项目创建一份 `.agents/skills/wxh-dev-standard`。
+
+业务项目只保存自己的项目事实，例如：
+
+- 业务需求和项目 README；
+- 当前技术栈和启动方式；
+- CodeGraph / Trellis 的项目级初始化产物；
+- 该项目独有的 AGENTS.md；
+- 业务代码、Docker 文件、`.cnb.yml`、`docker-compose.yml`。
+
+通用的“怎么分析、怎么开发、怎么测试、怎么 CNB 构建、怎么部署”的流程统一由这套全局 Skill 提供。
+
+## 6. 验证
+
+Codex 当前用户全局：
 
 ```bash
 ls ~/.agents/skills
-ls ~/.claude/skills
 ```
 
-Codex 可以查看 `/skills` 或使用 Skill 选择器确认发现结果。Claude Code 可以使用 `/skills` 查看当前可用 Skills。
+Linux 机器级：
 
-正常使用时**不需要每次手工指定 Skill 名称**。例如直接说：
-
-```text
-把这个项目从代码检查、前后台验证、CNB 构建一直走到线上部署。
+```bash
+ls /etc/codex/skills
 ```
 
-Agent 应根据 `project-delivery-flow` 的 description 自动命中并加载该 Skill，再按流程调用需要的其它 Skill。
+仓库自身检查：
 
-## 自动加载的工作方式
-
-Agent Skills 使用渐进加载：会话开始时主要暴露 Skill 的 `name` 和 `description`；当当前任务匹配 description 时，Agent 再加载完整 `SKILL.md`。因此本仓库把触发条件写在 description 中，而不是要求你记住 Skill 名称。
-
-本仓库的默认策略是：
-
-1. Skill 允许 Agent 隐式调用；除非确实必须人工触发，否则不要关闭 implicit/model invocation。
-2. 用户说业务目标即可，不要求用户补一句“使用 xxx Skill”。
-3. 命中 Skill 后直接执行工作，不先把 Skill 内容、安装教程或“接下来请手工加载”展示给用户。
-4. 只有用户询问 Skill 本身、排查为什么没有触发、或安装状态异常时，才解释加载机制。
-5. 自动加载不等于跳过安全确认。删除生产数据、覆盖仓库、生产发布等高风险动作仍按对应 Skill 的保护规则处理。
-
-## 项目级安装（可选）
-
-如果某一组 Skill 只想给单个项目使用，可以把需要的 Skill 链接到项目内，而不是装成个人全局 Skill：
-
-```text
-<project>/.agents/skills/<skill-name>/SKILL.md   # Codex
-<project>/.claude/skills/<skill-name>/SKILL.md  # Claude Code
+```bash
+python ~/.wxh-dev-standard/scripts/validate-skills.py
 ```
 
-项目自己的业务事实、架构说明、CodeGraph/Trellis 初始化结果也应该留在项目中；`wxh-dev-standard` 只维护跨项目复用的流程。
-
-## 不推荐的安装方式
-
-不建议把整个 `skills/` 拼成一个超长 `AGENTS.md` / `CLAUDE.md`，也不建议复制出多份 Skill 后各自修改。这样会失去按需加载能力，并且后续无法可靠更新。
-
-如果使用复制方式而不是链接方式，每次更新都必须重新复制并处理冲突，因此只作为不支持链接环境下的兜底方案。
+Codex 能自动检测 Skill 变化；如果新安装或更新没有出现在当前会话，重启 Codex 后重新检查。

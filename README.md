@@ -63,10 +63,13 @@ Claude Code 与 Codex **分开安装**。机器上只需要 Claude 时，不需�
 git clone https://github.com/wxh6667/wxh-dev-standard.git ~/.wxh-dev-standard
 python3 ~/.wxh-dev-standard/scripts/sync-global-instructions.py --claude
 python3 ~/.wxh-dev-standard/scripts/sync-skills.py --claude
+python3 ~/.wxh-dev-standard/scripts/sync-claude-hooks.py
 python3 ~/.wxh-dev-standard/scripts/validate-skills.py
 ```
 
 Claude Code 的 MCP 按 [`mcp/claude.mcp.example.json`](mcp/claude.mcp.example.json) 和当前 Claude 配置方式单独合并，不复用 Codex 的 `config.toml`。
+
+`sync-claude-hooks.py` 额外安装用户级 hooks：当前包含 Trellis commit 门禁（Trellis 项目无活动任务时拦截 `git commit`，豁免关键字 `no-trellis`），注册进 `~/.claude/settings.json` 时只新增 wxh 拥有的条目，不改动用户既有配置。
 
 ## 自动加载
 
@@ -90,11 +93,12 @@ Claude Code 的 MCP 按 [`mcp/claude.mcp.example.json`](mcp/claude.mcp.example.j
 AGENTS.md     Codex 全局系统提示词标准源，安装时同步到 ~/.codex/AGENTS.md
 CLAUDE.md     Claude Code 全局系统提示词标准源，安装时同步到 ~/.claude/CLAUDE.md
 skills/       按任务自动触发的 Agent Skills
+hooks/        Claude Code 用户级 hook 脚本标准源，安装时同步到 ~/.claude/hooks/
 mcp/          Codex / Claude 脱敏 MCP 基线与安全合并说明
 migration/    原环境备份的脱敏盘点与迁移说明
 references/   多个 Skill 共用的详细参考
 templates/    项目 Docker / Compose / CNB 等模板
-scripts/      全局指令、Skill 同步与校验工具
+scripts/      全局指令、Skill、Hook 同步与校验工具
 INSTALL.md    Codex / Claude 分开的自然语言安装与更新说明
 ```
 

@@ -99,7 +99,7 @@ https://github.com/wxh6667/wxh-dev-standard.git
 
 把仓库作为唯一源码放在 $HOME/.wxh-dev-standard。不存在就 clone；已经存在且 remote 正确就使用 fast-forward-only 更新，不 reset --hard。
 
-仓库根目录 CLAUDE.md 是 Claude Code 全局提示词标准源，同步到 ~/.claude/CLAUDE.md。把仓库 skills/ 安装到 ~/.claude/skills，并运行 Skill 校验。不要复制 Codex 的 ~/.codex 配置，也不要把整套 Skills 复制进每个业务项目。
+仓库根目录 CLAUDE.md 是 Claude Code 全局提示词标准源，同步到 ~/.claude/CLAUDE.md。把仓库 skills/ 安装到 ~/.claude/skills，并运行 Skill 校验。运行 scripts/sync-claude-hooks.py 安装仓库 hooks/ 到 ~/.claude/hooks/ 并安全合并注册进 ~/.claude/settings.json（只动 wxh 拥有的条目，不碰 env/permissions/密钥）。不要复制 Codex 的 ~/.codex 配置，也不要把整套 Skills 复制进每个业务项目。
 
 Claude MCP 参考 mcp/claude.mcp.example.json 单独安全合并；不复用 Codex config.toml。机器路径按当前机器探测，密钥和账号信息保留在本机私有配置。
 
@@ -107,7 +107,7 @@ Claude MCP 参考 mcp/claude.mcp.example.json 单独安全合并；不复用 Cod
 
 执行 Maven/Gradle、大型前端构建、完整测试等重任务时，同样必须以主机至少约 2 GiB MemAvailable 为安全底线；无法守住安全线就降低并发、限制任务或停止该重任务，不擅自停止生产服务腾内存。
 
-最后实际验证 ~/.claude/CLAUDE.md 与仓库根目录 CLAUDE.md 一致、全局 Skills 可发现且校验通过、Claude MCP 可用。只报告实际结果、冲突、备份位置和仍需人工处理的问题。
+最后实际验证 ~/.claude/CLAUDE.md 与仓库根目录 CLAUDE.md 一致、全局 Skills 可发现且校验通过、~/.claude/hooks 下 wxh hooks 已安装且 settings.json 只新增了 wxh 拥有的 PreToolUse 条目、Claude MCP 可用。只报告实际结果、冲突、备份位置和仍需人工处理的问题。
 ```
 
 ### Claude Code 手工安装
@@ -123,6 +123,7 @@ fi
 
 python3 "$HOME/.wxh-dev-standard/scripts/sync-global-instructions.py" --claude
 python3 "$HOME/.wxh-dev-standard/scripts/sync-skills.py" --claude
+python3 "$HOME/.wxh-dev-standard/scripts/sync-claude-hooks.py"
 python3 "$HOME/.wxh-dev-standard/scripts/validate-skills.py"
 ```
 
@@ -137,15 +138,18 @@ if (Test-Path "$Repo\.git") {
 }
 python "$Repo\scripts\sync-global-instructions.py" --claude
 python "$Repo\scripts\sync-skills.py" --claude
+python "$Repo\scripts\sync-claude-hooks.py"
 python "$Repo\scripts\validate-skills.py"
 ```
+
+`sync-claude-hooks.py` 把仓库 `hooks/` 下的脚本安装到 `~/.claude/hooks/`，并只向 `~/.claude/settings.json` 合并注册 wxh 拥有的 PreToolUse 条目（带时间戳备份；`env`、`permissions`、`model` 等用户自有字段绝不改动）。当前包含 Trellis commit 门禁：Trellis 项目没有活动任务时拦截 `git commit`，豁免关键字 `no-trellis`。
 
 ### Claude Code 更新
 
 直接说：
 
 ```text
-更新我的 wxh-dev-standard Claude Code 全局开发环境。只更新 Claude Code：安全拉取仓库，同步根目录 CLAUDE.md 到 ~/.claude/CLAUDE.md，同步 ~/.claude/skills，运行 Skill 校验并检查 Claude MCP 基线变化；不要修改 Codex 配置。
+更新我的 wxh-dev-standard Claude Code 全局开发环境。只更新 Claude Code：安全拉取仓库，同步根目录 CLAUDE.md 到 ~/.claude/CLAUDE.md，同步 ~/.claude/skills，重新运行 sync-claude-hooks.py 更新全局 hooks，运行 Skill 校验并检查 Claude MCP 基线变化；不要修改 Codex 配置。
 ```
 
 手工更新：
@@ -154,6 +158,7 @@ python "$Repo\scripts\validate-skills.py"
 git -C "$HOME/.wxh-dev-standard" pull --ff-only
 python3 "$HOME/.wxh-dev-standard/scripts/sync-global-instructions.py" --claude
 python3 "$HOME/.wxh-dev-standard/scripts/sync-skills.py" --claude
+python3 "$HOME/.wxh-dev-standard/scripts/sync-claude-hooks.py"
 python3 "$HOME/.wxh-dev-standard/scripts/validate-skills.py"
 ```
 

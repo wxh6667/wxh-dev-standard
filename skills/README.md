@@ -10,31 +10,49 @@ skill-name/
 └── assets/           # optional
 ```
 
-`SKILL.md` 的 `name` 和 `description` 用于发现和触发 Skill；正文只写执行时真正需要的工作流、检查点和完成标准。不要为了“完整”重复常识，也不要把所有 Skill 同时作为全局约束加载。
+`SKILL.md` 的 `name` 和 `description` 用于发现和触发 Skill；正文只写执行时真正需要的工作流、检查点和完成标准。不要把全部 Skill 同时作为永久全局约束加载。
 
-## 核心流程
+## 端到端入口
 
-- `project-delivery-flow`：一键编排从接手项目到交付上线的完整流程。
-- `project-discovery`：扫描现有仓库，识别技术栈、入口、数据和部署方式。
-- `project-init`：完成项目进入 AI Coding 前的初始化。
-- `ai-context-init`：检查并初始化 CodeGraph、Trellis 和项目级 AI 上下文。
-- `requirement-analysis`：把需求整理成可实现、可验收的范围。
-- `architecture-review`：在不必要重构的前提下判断现有架构是否需要调整。
-- `frontend-development` / `backend-development`：按现有技术栈完成实现并验证。
-- `database` / `api-design`：处理数据库变更和接口契约。
-- `testing` / `debugging`：验证和问题闭环。
-- `git-workflow`：整理忽略规则、凭证、仓库隔离和提交推送。
-- `docker-build`：设计单业务运行类型镜像和 Docker 构建文件。
-- `cnb-ci`：通过 CNB 构建并发布生产镜像。
-- `deployment`：用 `docker-compose.yml + .env` 完成线上启动与检查。
-- `delivery`：最终交付检查。
+- `project-delivery-flow`：用户说“走完全部流程”、完整交付、前后台都跑通时使用；按需编排下面的 Skill。
 
-## 辅助流程
+## 项目理解与设计
 
-- `agent-config-cleanup`：清理本机/主机中重复的 AI rules、skills、agents 配置，区分全局、项目级和可删除内容。
-- `server-cleanup`：清理服务器 Docker/日志/废弃部署资产；与 AI 约束清理不是同一件事。
-- `skill-authoring`：以后新增或修改本仓库 Skill 时使用。
+- `project-discovery`：扫描仓库并识别技术栈、入口、数据和部署方式。
+- `project-init`：进入 AI Coding 前完成项目初始化。
+- `ai-context-init`：检查并初始化项目级 CodeGraph、Trellis 和 Agent 上下文。
+- `requirement-analysis`：把零散需求转成实现范围和验收条件。
+- `architecture-review`：判断现有架构是否需要最小调整，避免无意义重构。
 
-## 编写原则
+## 实现
 
-Skill 要“少而准”：触发条件写进 `description`，正文尽量控制在任务所需范围；复杂命令、风险清单和长模板放到 `references/` 或 `templates/`。高风险操作采用更严格步骤，普通开发任务保留足够自由度。
+- `frontend-development`：前端页面、状态、接口接入和构建验证。
+- `backend-development`：后端业务、权限、配置、任务和运行验证。
+- `database`：数据库结构、迁移、查询和数据安全。
+- `api-design`：前后端/APP/第三方接口契约。
+
+## 验证
+
+- `testing`：测试、编译、类型检查和真实业务流验证。
+- `debugging`：从真实错误到根因修复并回归。
+- `security-check`：仅检查本次变更真正涉及的安全边界，避免重型合规流程。
+
+## 代码与交付
+
+- `git-workflow`：忽略规则、密钥检查、仓库隔离、提交和推送。
+- `docker-build`：一个独立业务运行类型一个最终自定义镜像；生产镜像不在本地构建。
+- `cnb-ci`：CNB 构建并发布阿里云 Registry 镜像。
+- `deployment`：使用 `docker-compose.yml + .env` 拉取并启动线上服务。
+- `delivery`：最终交付验收。
+
+## 清理与维护
+
+- `agent-config-cleanup`：清理本机/主机里重复的 `.agents/.claude/.codex/Cursor/CodeGraph/Trellis` 规则和 Skills，区分全局、项目级、Skill 和删除候选。
+- `server-cleanup`：清理 Docker、日志和废弃部署资产；不要拿它清 AI 约束。
+- `skill-authoring`：新增/修改本仓库 Skill 时使用。
+
+## 维护
+
+运行 `python3 scripts/validate-skills.py` 可检查每个 Skill 是否存在 `SKILL.md`、YAML frontmatter、`name` 和 `description`。格式说明见 `references/skill-format.md`。
+
+原则始终是“少而准”：触发条件写进 `description`，正文保持流程化；复杂命令、风险说明和长模板放到 `references/` 或 `templates/`。

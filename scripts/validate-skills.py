@@ -37,6 +37,14 @@ for directory in sorted(p for p in SKILLS.iterdir() if p.is_dir()):
     if not desc_match or not desc_match.group(1).strip(" '\""):
         errors.append(f"{skill.relative_to(ROOT)}: missing description")
 
+    openai_meta = directory / "agents" / "openai.yaml"
+    if openai_meta.exists():
+        meta = openai_meta.read_text(encoding="utf-8")
+        if re.search(r"(?m)^\s*allow_implicit_invocation:\s*false\s*$", meta, re.I):
+            errors.append(
+                f"{openai_meta.relative_to(ROOT)}: implicit invocation is disabled; this global library expects automatic matching"
+            )
+
 if count == 0:
     errors.append("no skills found")
 
@@ -46,4 +54,4 @@ if errors:
         print(f"- {error}")
     sys.exit(1)
 
-print(f"OK: validated {count} skills")
+print(f"OK: validated {count} skills; implicit invocation policy is compatible")

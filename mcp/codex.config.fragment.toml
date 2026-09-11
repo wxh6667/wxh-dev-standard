@@ -1,0 +1,49 @@
+# Portable MCP fragment for Codex.
+# Merge into ~/.codex/config.toml; do NOT replace the entire file blindly.
+# Secrets must come from environment variables or tool-managed auth.
+
+[mcp_servers.context7]
+command = "npx"
+args = ["-y", "@upstash/context7-mcp"]
+env_vars = ["CONTEXT7_API_KEY"]
+startup_timeout_sec = 600
+
+[mcp_servers.codegraph]
+command = "codegraph"
+args = ["serve", "--mcp"]
+
+[mcp_servers.codegraph.env]
+CODEGRAPH_NO_DAEMON = "1"
+
+[mcp_servers.openaiDeveloperDocs]
+url = "https://developers.openai.com/mcp"
+
+[mcp_servers.playwright]
+command = "npx"
+args = ["@playwright/mcp@latest", "--isolated", "--no-sandbox"]
+startup_timeout_sec = 600
+
+[mcp_servers.playwright.tools.browser_close]
+approval_mode = "approve"
+
+[mcp_servers.figma-bridge]
+command = "npx"
+args = ["-y", "@gethopp/figma-mcp-bridge"]
+
+[mcp_servers.mcp-server-time]
+command = "uvx"
+args = ["--with", "mcp<2", "mcp-server-time==2026.7.10", "--local-timezone=Asia/Shanghai"]
+startup_timeout_sec = 600
+
+# FastCtx was present in the source machine but used a machine-specific absolute path.
+# Enable only after locating the executable on the target machine.
+# [mcp_servers.fastctx]
+# command = "fastctx"
+# args = ["serve"]
+# startup_timeout_sec = 120
+
+# Present in the source backup but disabled there.
+[mcp_servers.deobfuscate-mcp-server]
+enabled = false
+command = "npx"
+args = ["-y", "deobfuscate-mcp-server"]

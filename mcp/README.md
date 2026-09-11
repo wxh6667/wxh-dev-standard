@@ -2,6 +2,25 @@
 
 本目录记录跨机器可复用的 MCP 基线，按工具分两套：`codex.config.fragment.toml` 只用于 Codex，`claude.mcp.example.json` 只用于 Claude Code，互不复用。
 
+## 上游来源
+
+两套基线中的 MCP 全部来自公开上游项目，仓库本身只保存配置片段，不保存任何 MCP 实现：
+
+| MCP | 上游仓库 | 两端共用 |
+|---|---|---|
+| context7 | https://github.com/upstash/context7 | 是（npm `@upstash/context7-mcp`） |
+| sequential-thinking | https://github.com/modelcontextprotocol/servers | 是（npm `@modelcontextprotocol/server-sequential-thinking`） |
+| codegraph | 本机安装的 `codegraph` CLI（`~/.local/bin/codegraph`），上游见 `codegraph --version` 输出 | 是（stdio `serve --mcp`） |
+| playwright | https://github.com/microsoft/playwright-mcp | 是（npm `@playwright/mcp`） |
+| figma-bridge | https://github.com/gethopp/figma-mcp-bridge | 是（npm `@gethopp/figma-mcp-bridge`） |
+| mcp-server-time | https://github.com/modelcontextprotocol/servers（`src/time`） | 是（PyPI `mcp-server-time`） |
+| openaiDeveloperDocs | https://developers.openai.com/mcp（OpenAI 官方远程 HTTP MCP） | 是（远程 URL，无需本地依赖） |
+| awslabs.document-loader | https://github.com/awslabs/mcp（document-loader-mcp-server） | 仅 Claude（PyPI `awslabs.document-loader-mcp-server`） |
+| fastctx | 私有/机器绑定的可执行文件，无公开上游 | 仅按需，不在基线 |
+| deobfuscate-mcp-server | 源环境中已禁用，不安装 | 否 |
+
+除 awslabs document loader（Claude 专用）外，其余 MCP 两端基线保持能力对齐，差别只在配置格式（Codex TOML / Claude JSON）。
+
 ## Codex
 
 Codex 当前正式 MCP 配置源是 `~/.codex/config.toml` 中的 `[mcp_servers.*]`。不要把旧备份里的 `.codex/mcp-servers.json` 当成完整事实来源，也不要用本仓库模板直接覆盖整份 `config.toml`。

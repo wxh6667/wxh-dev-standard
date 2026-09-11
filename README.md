@@ -70,7 +70,7 @@ python3 ~/.wxh-dev-standard/scripts/validate-skills.py
 
 Claude Code 的 MCP 按 [`mcp/claude.mcp.example.json`](mcp/claude.mcp.example.json) 和当前 Claude 配置方式单独合并，不复用 Codex 的 `config.toml`。
 
-`sync-claude-hooks.py` 额外安装用户级 hooks：当前包含 Trellis commit 门禁（Trellis 项目无活动任务时拦截 `git commit`，豁免关键字 `no-trellis`），注册进 `~/.claude/settings.json` 时只新增 wxh 拥有的条目，不改动用户既有配置。
+`sync-claude-hooks.py` 额外安装用户级 hooks 和 permissions 基线：hooks 当前包含 Trellis commit 门禁（Trellis 项目无活动任务时拦截 `git commit`，豁免关键字 `no-trellis`）；permissions 基线为 `defaultMode: "acceptEdits"` 加破坏性命令 `ask` 确认列表。注册进 `~/.claude/settings.json` 时只新增 wxh 拥有的条目，不改动用户既有配置。
 
 ## 自动加载
 

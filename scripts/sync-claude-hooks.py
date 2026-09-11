@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
-"""Install wxh-dev-standard Claude Code hooks into ~/.claude.
+"""Install wxh-dev-standard Claude Code hooks and permissions baseline into ~/.claude.
 
 Installs the repo-owned hook scripts to ~/.claude/hooks/ and registers them
-in ~/.claude/settings.json. Registration is a safe merge: keys the user
-already owns (env, permissions, model, existing hooks entries, ...) are never
-touched; only the wxh-owned PreToolUse entries are added/updated. A timestamped
+in ~/.claude/settings.json, and merges the wxh-owned permissions baseline
+(defaultMode + dangerous-command ask list) into the same file. Registration
+is a safe merge: env, model, secrets and every other user-owned key are
+never touched; only the wxh-owned PreToolUse entries and the wxh-owned
+permissions keys are added/updated. User-added `ask` entries are preserved
+and re-running the script re-adds removed baseline entries. A timestamped
 backup of settings.json is taken before any change.
 
 Entries are written in the schema-required matcher-group shape:
@@ -28,6 +31,31 @@ SETTINGS_PATH = CLAUDE_DIR / "settings.json"
 # hook script name -> PreToolUse matcher
 HOOK_MANIFEST = {
     "gate-commit-trellis.py": "Bash",
+}
+
+# wxh-owned permissions baseline merged into settings.json.
+# defaultMode auto-approves file edits; the `ask` list forces explicit
+# confirmation for destructive commands. User-added ask entries and other
+# permission keys (allow/deny/...) are never touched.
+PERMISSIONS_BASELINE = {
+    "defaultMode": "acceptEdits",
+    "ask": [
+        "Bash(rm:*)",
+        "Bash(sudo rm:*)",
+        "Bash(rmdir:*)",
+        "Bash(shred:*)",
+        "Bash(git clean:*)",
+        "Bash(git reset --hard:*)",
+        "Bash(git push --force:*)",
+        "Bash(git push -f:*)",
+        "Bash(git branch -D:*)",
+        "Bash(docker rm:*)",
+        "Bash(docker rmi:*)",
+        "Bash(docker volume rm:*)",
+        "Bash(docker system prune:*)",
+        "Bash(kubectl delete:*)",
+        "Bash(npm publish:*)",
+    ],
 }
 
 
@@ -93,13 +121,7 @@ def entry_matches(existing: object, script_name: str) -> bool:
     return Path(command).name == script_name
 
 
-def register_settings(script_name: str) -> None:
-    settings: dict = {}
-    if SETTINGS_PATH.is_file():
-        settings = json.loads(SETTINGS_PATH.read_text(encoding="utf-8"))
-    if not isinstance(settings, dict):
-        raise SystemExit(f"{SETTINGS_PATH} is not a JSON object; refusing to edit")
-
+def register_settings(script_name: str, settings: dict) -> None:
     hook_group = wanted_group(script_name)
     pretooluse = settings.get("hooks", {}).get("PreToolUse")
     entries = pretooluse if isinstance(pretooluse, list) else []
@@ -129,29 +151,70 @@ def register_settings(script_name: str) -> None:
             settings.setdefault("hooks", {})["PreToolUse"] = entries
         print(f"[settings] ADDED PreToolUse group for {script_name}")
 
-    changed = replaced
-    if not SETTINGS_PATH.is_file():
-        changed = True
-    if changed and SETTINGS_PATH.exists():
-        stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-        backup = SETTINGS_PATH.with_name(f"{SETTINGS_PATH.name}.bak-wxh-{stamp}")
-        shutil.copy2(SETTINGS_PATH, backup)
-        print(f"[settings] BACKUP {backup}")
 
-    SETTINGS_PATH.write_text(
-        json.dumps(settings, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
-    )
+def sync_permissions(settings: dict) -> None:
+    """Merge the wxh-owned permissions baseline into settings['permissions'].
+
+    Only the baseline keys are written; every other permissions key and every
+    user-added ask entry are preserved. Re-running restores baseline entries
+    that were removed.
+    """
+    permissions = settings.get("permissions")
+    if not isinstance(permissions, dict):
+        permissions = {}
+        settings["permissions"] = permissions
+
+    for key, value in PERMISSIONS_BASELINE.items():
+        if key == "ask":
+            existing = permissions.get("ask")
+            merged = [e for e in existing if isinstance(e, str)] if isinstance(existing, list) else []
+            for rule in value:
+                if rule not in merged:
+                    merged.append(rule)
+            if merged != (existing if isinstance(existing, list) else []):
+                permissions["ask"] = merged
+                print(f"[settings] UPDATED permissions.ask (baseline {len(value)} rules)")
+            else:
+                print("[settings] OK permissions.ask")
+        else:
+            if permissions.get(key) != value:
+                permissions[key] = value
+                print(f"[settings] UPDATED permissions.{key} = {value}")
+            else:
+                print(f"[settings] OK permissions.{key}")
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Install wxh-dev-standard Claude Code hooks (scripts + safe settings merge)."
+        description="Install wxh-dev-standard Claude Code hooks and permissions baseline (scripts + safe settings merge)."
     )
     parser.parse_args()
 
+    settings: dict = {}
+    if SETTINGS_PATH.is_file():
+        settings = json.loads(SETTINGS_PATH.read_text(encoding="utf-8"))
+    if not isinstance(settings, dict):
+        raise SystemExit(f"{SETTINGS_PATH} is not a JSON object; refusing to edit")
+
+    changed = False
     for name in HOOK_MANIFEST:
         sync_hook_script(name)
-        register_settings(name)
+
+    before = json.dumps(settings, sort_keys=True, ensure_ascii=False)
+    for name in HOOK_MANIFEST:
+        register_settings(name, settings)
+    sync_permissions(settings)
+    if json.dumps(settings, sort_keys=True, ensure_ascii=False) != before:
+        changed = True
+    if changed or not SETTINGS_PATH.is_file():
+        if SETTINGS_PATH.exists():
+            stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+            backup = SETTINGS_PATH.with_name(f"{SETTINGS_PATH.name}.bak-wxh-{stamp}")
+            shutil.copy2(SETTINGS_PATH, backup)
+            print(f"[settings] BACKUP {backup}")
+        SETTINGS_PATH.write_text(
+            json.dumps(settings, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+        )
     print("[hooks] complete")
     return 0
 

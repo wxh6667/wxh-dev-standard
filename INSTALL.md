@@ -142,7 +142,7 @@ python "$Repo\scripts\sync-claude-hooks.py"
 python "$Repo\scripts\validate-skills.py"
 ```
 
-`sync-claude-hooks.py` 把仓库 `hooks/` 下的脚本安装到 `~/.claude/hooks/`，并只向 `~/.claude/settings.json` 合并注册 wxh 拥有的 PreToolUse 条目（带时间戳备份；`env`、`permissions`、`model` 等用户自有字段绝不改动）。当前包含 Trellis commit 门禁：Trellis 项目没有活动任务时拦截 `git commit`，豁免关键字 `no-trellis`。
+`sync-claude-hooks.py` 把仓库 `hooks/` 下的脚本安装到 `~/.claude/hooks/`，并向 `~/.claude/settings.json` 安全合并两类 wxh 拥有的条目（带时间戳备份；`env`、模型、密钥等用户自有字段绝不改动）：一是 Trellis commit 门禁的 PreToolUse 条目（Trellis 项目没有活动任务时拦截 `git commit`，豁免关键字 `no-trellis`）；二是 permissions 基线——`defaultMode: "acceptEdits"` 自动放行文件编辑，外加破坏性命令（`rm`、`git push --force`、`docker rm`、`kubectl delete`、`npm publish` 等）的 `ask` 确认列表。用户自己添加的 `ask` 条目和其它 permissions 键不会被改动；重复运行脚本只会补回缺失的基线条目。
 
 ### Claude Code 更新
 

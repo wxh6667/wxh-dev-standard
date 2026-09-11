@@ -1,33 +1,21 @@
-# AI Context Init Skill
+---
+name: ai-context-init
+description: Prepare project-level AI context before significant coding. Use when CodeGraph, Trellis, Codex, Claude Code, Cursor, or another coding agent enters a repository and project-specific indexing/rules may be missing or stale. Initialize installed project tools when needed and avoid duplicate global/project constraints.
+---
 
-## Purpose
+# AI Context Init
 
-建立项目级 AI 上下文，避免 AI 在不了解代码的情况下直接修改。
+Keep global rules small. Put project facts in the project and reusable workflows in Skills.
 
-## Required Checks
+## Workflow
 
-检查并初始化：
+1. Inspect existing agent/rule files and tool metadata before creating anything.
+2. Check whether CodeGraph is installed and whether the current repository has project-level initialization/index data. If installed but uninitialized, initialize it using the installed version's documented/help-discovered command, then verify the project is queryable.
+3. Do the same for Trellis. Preserve existing valid configuration and refresh only when stale/broken.
+4. Check `AGENTS.md` and tool-specific project rules. Create or update them only for facts that cannot live in normal project documentation or reusable Skills.
+5. Remove no configuration merely because it is unfamiliar. Distinguish generated index/cache, credentials, project rules, user-global rules and reusable Skills.
+6. Before coding, confirm the agent understands startup commands, core modules, data boundaries and deployment flow.
 
-- 项目说明
-- 架构信息
-- 开发规则
-- CodeGraph
-- Trellis
-- Agent Rules
+## Guardrails
 
-## Rules
-
-禁止：
-
-- 未分析项目直接重构
-- 未理解业务直接替换核心模块
-- 随意新增重复脚本
-
-## Completion
-
-必须能够回答：
-
-- 项目如何启动
-- 核心模块在哪里
-- 数据如何流转
-- 如何部署
+Do not duplicate the same rule across `AGENTS.md`, Claude/Cursor rules and Skills. Do not commit credentials, generated indexes or machine-specific state unless the tool explicitly requires versioning them. Never invent CodeGraph/Trellis commands; inspect the installed CLI/help when command names differ by version.

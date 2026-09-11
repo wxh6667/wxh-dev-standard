@@ -1,15 +1,21 @@
 # Repository Instructions
 
-This repository is a portable **global Agent Skill library**, not a single global prompt and not a project-local rule bundle.
+This repository is the source of truth for a Codex-first global AI coding environment, with Claude Code compatibility. It contains three different kinds of reusable configuration and they must remain separate:
 
-When adding or changing a Skill, follow `skills/skill-authoring/SKILL.md`. Every Skill must live in `skills/<name>/SKILL.md` and include YAML frontmatter with at least `name` and `description`. Keep instructions task-focused and concise; put shared long-form detail in `references/` and reusable project files in `templates/`.
+- `global/`: cross-project user-global instruction files;
+- `skills/`: portable workflows discovered and loaded on demand;
+- `mcp/`: sanitized MCP baselines that must be merged into local tool configuration, never blindly copied over it.
 
-Skills should be written for implicit discovery and direct execution. Their descriptions must match realistic user intent without requiring the user to remember the internal Skill name. When a Skill matches, it should normally perform the requested work rather than explain how to invoke itself or ask the user to load another Skill manually.
+`migration/` records sanitized legacy-environment inventory and migration decisions. It must never contain real tokens, passwords, session data, private keys, generated CodeGraph/Trellis indexes, or raw backups containing secrets.
 
-Do not duplicate the canonical runtime defaults from `references/runtime-standard.md` across many Skills. Do not add secrets, real `.env` files, tokens, registry credentials, private keys, machine session data or generated CodeGraph/Trellis indexes to this public repository.
+When changing `global/`, keep only stable cross-project behavior. Do not move project workflows, library-specific tool steps, machine resource limits, absolute paths, credentials, or project facts into the global instruction files. Codex's canonical global source in this repository is `global/codex/AGENTS.md`; Claude's is `global/claude/CLAUDE.md`.
 
-Do not copy this whole Skill library into every business repository. The global library owns reusable workflows; project-specific business facts, project-local AGENTS.md, deployment values, and CodeGraph/Trellis project state remain in the project that owns them.
+When adding or changing a Skill, follow `skills/skill-authoring/SKILL.md`. Every Skill must live in `skills/<name>/SKILL.md`, include YAML frontmatter with `name` and `description`, support realistic implicit discovery, and execute the task rather than teach the user how to invoke it. Move detailed optional checks into skill-local `references/` instead of growing every `SKILL.md`.
 
-When a tool command can differ by installed version (especially CodeGraph/Trellis), inspect the installed CLI/help instead of hardcoding an unverified command.
+Do not duplicate canonical runtime defaults from `references/runtime-standard.md` across many Skills. Project-specific business facts, project `AGENTS.md`, deployment values, and CodeGraph/Trellis project state remain in the project that owns them.
 
-Keep the library lightweight: add a new Skill only for a repeatable workflow with a distinct trigger. Prefer implicit invocation and progressive loading over permanent giant prompts.
+For MCP changes, treat `~/.codex/config.toml` on the target machine as the live source of truth. Repository MCP files are safe fragments/templates only. Merge `[mcp_servers.*]` entries while preserving unrelated model, sandbox, project and plugin configuration. Secrets must stay in environment variables or private local authentication stores.
+
+When tool commands vary by installed version (especially CodeGraph/Trellis), inspect installed CLI/help or current primary documentation instead of hardcoding an unverified command.
+
+Keep the repository lightweight. Add new global rules or Skills only when they represent stable behavior or a genuinely repeatable workflow; prefer progressive loading over a giant permanent prompt.

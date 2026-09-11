@@ -4,27 +4,28 @@
 
 本仓库同步三类东西：
 
-1. 根目录 `AGENTS.md` + `global/claude/CLAUDE.md`：Codex / Claude Code 各自的跨项目长期全局指令；
+1. 根目录 `AGENTS.md` / `CLAUDE.md`：Codex / Claude Code 各自的跨项目长期全局指令；
 2. `skills/`：按任务自动发现和加载的可复用执行流程；
 3. `mcp/`：跨机器可复用、但必须安全合并的 MCP 基线。
 
 具体业务项目自己的需求、架构、数据库说明、项目 `AGENTS.md` / `CLAUDE.md`、Docker/CNB 文件以及 CodeGraph/Trellis 项目状态继续留在各项目中。
 
-## Codex 全局提示词
+## 全局提示词标准源
 
-仓库根目录 [`AGENTS.md`](AGENTS.md) **就是 Codex 全局系统提示词的标准源文件**。它不是“约束 wxh-dev-standard 这个仓库本身”的项目规则。
+仓库根目录 [`AGENTS.md`](AGENTS.md) **就是 Codex 全局系统提示词的标准源文件**，安装时同步到 `~/.codex/AGENTS.md`。
 
-这份文件来自原 Linux 备份中的 `/root/AGENTS.md` / `/root/.codex/AGENTS.md`，保留语言与表达、协作方式、主 Agent/委派、调试优先、代码质量、结构性修改判断、规划执行、安全边界、Skill 自动发现以及主机资源保护等长期规则；已经由 Skill/MCP 承接的 Trellis/CodeGraph 初始化细节、前后端 workflow、测试步骤、Docker/CNB 具体流程、Context7/FastCtx 具体调用步骤不再重复塞进全局提示词。
+仓库根目录 [`CLAUDE.md`](CLAUDE.md) **就是 Claude Code 全局提示词的标准源文件**，安装时同步到 `~/.claude/CLAUDE.md`。
 
-安装时同步关系是：
+两份文件都不是“只约束 wxh-dev-standard 这个仓库自身”的项目规则，而是从原 Linux AI Coding 环境中的全局提示词整理出来的跨项目长期行为约束。已经由 Skill/MCP 承接的 Trellis/CodeGraph 初始化细节、前后端 workflow、测试步骤、Docker/CNB 具体流程、Context7/FastCtx 调用步骤不再重复塞进全局提示词。
+
+安装关系：
 
 ```text
-仓库根目录 AGENTS.md
-        ↓
-~/.codex/AGENTS.md
+AGENTS.md  -> ~/.codex/AGENTS.md
+CLAUDE.md  -> ~/.claude/CLAUDE.md
 ```
 
-Claude Code 不复用 Codex 的 AGENTS，而是独立维护 [`global/claude/CLAUDE.md`](global/claude/CLAUDE.md)，同步到 `~/.claude/CLAUDE.md`。
+Codex 和 Claude Code 分别安装、分别更新，不要求同时存在，也不互相覆盖配置。
 
 ## 核心交付约定
 
@@ -81,13 +82,13 @@ Claude Code 的 MCP 按 [`mcp/claude.mcp.example.json`](mcp/claude.mcp.example.j
 
 ## 原环境备份迁移
 
-用户提供的 2026-09-10 Linux AI Coding 环境 zip 已做脱敏盘点，见 [`migration/ZIP-BACKUP-2026-09-10.md`](migration/ZIP-BACKUP-2026-09-10.md)。原备份里的全局 AGENTS、旧 frontend/backend workflow、独立 Skills、Codex 系统 Skills、MCP 和资源保护策略已经分类，真实凭证和 session 不进入本公开仓库。
+用户提供的 2026-09-10 Linux AI Coding 环境 zip 已做脱敏盘点，见 [`migration/ZIP-BACKUP-2026-09-10.md`](migration/ZIP-BACKUP-2026-09-10.md)。原备份里的全局 AGENTS/CLAUDE、旧 frontend/backend workflow、独立 Skills、Codex 系统 Skills、MCP 和资源保护策略已经分类，真实凭证和 session 不进入本公开仓库。
 
 ## 目录
 
 ```text
 AGENTS.md     Codex 全局系统提示词标准源，安装时同步到 ~/.codex/AGENTS.md
-global/       Claude Code 等独立全局指令源说明
+CLAUDE.md     Claude Code 全局系统提示词标准源，安装时同步到 ~/.claude/CLAUDE.md
 skills/       按任务自动触发的 Agent Skills
 mcp/          Codex / Claude 脱敏 MCP 基线与安全合并说明
 migration/    原环境备份的脱敏盘点与迁移说明

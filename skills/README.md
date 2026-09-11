@@ -1,20 +1,23 @@
 # Skills
 
-本目录采用通用 Agent Skills 结构。每个 Skill 至少包含一个带 YAML frontmatter 的 `SKILL.md`：
+本目录采用通用 Agent Skills 结构。整套库默认安装到 Agent 的**全局发现目录**，跨项目复用；业务项目不需要复制整套 `skills/`。
+
+每个 Skill 至少包含一个带 YAML frontmatter 的 `SKILL.md`：
 
 ```text
 skill-name/
 ├── SKILL.md          # required
 ├── references/       # optional
 ├── scripts/          # optional
-└── assets/           # optional
+├── assets/           # optional
+└── agents/           # optional host metadata
 ```
 
-`SKILL.md` 的 `name` 和 `description` 用于发现和触发 Skill；正文只写执行时真正需要的工作流、检查点和完成标准。不要把全部 Skill 同时作为永久全局约束加载。
+`SKILL.md` 的 `name` 和 `description` 用于发现和隐式触发。当前任务命中 description 后，Agent 应自行加载正文并直接执行，而不是先把 Skill 内容展示给用户，也不要求用户再次手工输入 Skill 名称。正文只写执行时真正需要的工作流、检查点和完成标准。
 
 ## 端到端入口
 
-- `project-delivery-flow`：用户说“走完全部流程”、完整交付、前后台都跑通时使用；按需编排下面的 Skill。
+- `project-delivery-flow`：用户说“走完全部流程”、完整交付、前后台都跑通时自动匹配；按需编排下面的 Skills。
 
 ## 项目理解与设计
 
@@ -45,14 +48,27 @@ skill-name/
 - `deployment`：使用 `docker-compose.yml + .env` 拉取并启动线上服务。
 - `delivery`：最终交付验收。
 
-## 清理与维护
+## 全局 Skill 维护
 
+- `skill-library-maintenance`：用户说“更新 Skill / 同步开发规范 / 修复全局 Skill 安装”时自动维护 `wxh-dev-standard`，执行安全更新、同步新 Skill 和验证，不把更新命令当教程丢给用户。
 - `agent-config-cleanup`：清理本机/主机里重复的 `.agents/.claude/.codex/Cursor/CodeGraph/Trellis` 规则和 Skills，区分全局、项目级、Skill 和删除候选。
 - `server-cleanup`：清理 Docker、日志和废弃部署资产；不要拿它清 AI 约束。
 - `skill-authoring`：新增/修改本仓库 Skill 时使用。
 
+## 全局安装
+
+首次安装和以后更新统一见仓库根目录 `INSTALL.md`。Codex 推荐把这套库安装到 `$HOME/.agents/skills`，对当前系统用户的全部项目生效；共享 Linux 主机如果需要所有用户共同使用，可安装到 `/etc/codex/skills`。
+
+不要为了“全局”把所有正文拼成一个巨大 prompt。全局指的是**所有 Skill 都可被发现**，不是所有 Skill 的完整内容每轮都加载。正确方式仍然是根据 `description` 渐进加载。
+
 ## 维护
 
-运行 `python3 scripts/validate-skills.py` 可检查每个 Skill 是否存在 `SKILL.md`、YAML frontmatter、`name` 和 `description`。格式说明见 `references/skill-format.md`。
+运行：
 
-原则始终是“少而准”：触发条件写进 `description`，正文保持流程化；复杂命令、风险说明和长模板放到 `references/` 或 `templates/`。
+```bash
+python scripts/validate-skills.py
+```
+
+检查每个 Skill 是否存在 `SKILL.md`、YAML frontmatter、`name` 和 `description`。格式说明见 `references/skill-format.md`。
+
+原则始终是“少而准”：触发条件写进 `description`，命中后直接执行；复杂命令、风险说明和长模板放到 `references/` 或 `templates/`。

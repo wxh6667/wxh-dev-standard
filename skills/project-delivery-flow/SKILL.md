@@ -7,12 +7,12 @@ description: Execute an end-to-end software delivery when the user asks to èµ°å®
 
 When this Skill matches, **start doing the work**. Do not respond with a tutorial telling the user to invoke this Skill or its sub-Skills, and do not dump this workflow into the reply unless the user explicitly asks how the Skill works.
 
-Load and use specialized Skills yourself only when their step becomes relevant. Do not load every Skill, reference, or rule up front.
+Load specialized Skills only when their phase becomes relevant. Do not load every Skill/reference up front.
 
 ## Sequence
 
-1. `project-discovery`: understand the repository and current runtime.
-2. `project-init` + `ai-context-init`: ensure project-level context is ready; initialize installed CodeGraph/Trellis when missing.
+1. `project-discovery`: understand the repository, current runtime and existing project workflow state.
+2. `project-init` + `ai-context-init`: ensure project context is ready; initialize installed CodeGraph/Trellis when missing. If Trellis is available, use it as the project-local task/state workflow and map the following phases into it instead of creating a competing parallel plan.
 3. `requirement-analysis`: establish requested scope and acceptance checks from available evidence. Do not block on minor ambiguity when a safe best-effort interpretation exists.
 4. `architecture-review`: preserve the existing architecture unless a change is necessary.
 5. Implement required frontend/backend/database/API changes with the corresponding Skills.
@@ -26,7 +26,7 @@ Load and use specialized Skills yourself only when their step becomes relevant. 
 
 ## Interaction behavior
 
-Do not ask the user to manually load another Skill. Read the relevant installed Skill yourself. If the current environment gives you permission and tooling to perform a step, perform it rather than only describing commands. Ask for user action only when authentication, destructive approval, an unavailable external capability, or another genuine boundary requires it.
+Do not ask the user to manually load another Skill. Read the relevant installed Skill yourself. If the current environment gives you permission and tooling to perform a step, perform it rather than only describing commands. Ask for user action only when authentication, an unrequested destructive action, an unavailable external capability, or another genuine boundary requires it.
 
 Progress updates should report actual findings or completed work, not repeat Skill instructions.
 

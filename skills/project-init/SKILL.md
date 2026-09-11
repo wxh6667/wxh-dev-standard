@@ -1,34 +1,21 @@
-# Project Init Skill
+---
+name: project-init
+description: Initialize a new or existing software project before implementation. Use when first entering a repo, taking over legacy code, or preparing an AI coding session. Inspect the existing structure, preserve working conventions, and ensure project-level AI context such as CodeGraph/Trellis is initialized before broad changes.
+---
 
-## Purpose
+# Project Init
 
-初始化新项目，让 AI 在修改代码前理解项目。
-
-## Trigger
-
-- 新项目开始
-- 接手已有项目
-- AI 第一次进入代码库
+Start from the repository as it exists. Do not scaffold a replacement project unless the task explicitly requires it.
 
 ## Workflow
 
-1. 扫描项目目录
-2. 识别技术栈
-3. 分析前端、后端、数据库、部署方式
-4. 检查已有文档和规则
-5. 初始化项目上下文
+1. Read the top-level tree, README, package/build files, existing start/deploy scripts, Docker/CI files and environment examples.
+2. Identify frontend, backend, database, storage, external services, test commands and current deployment path.
+3. Check project-local instructions such as `AGENTS.md`, `CLAUDE.md`, `.cursor/rules`, tool config and existing Skills.
+4. Run the `ai-context-init` workflow. If CodeGraph or Trellis is available but this repository has not been initialized at project level, initialize it using the installed tool's supported command/config rather than inventing a command.
+5. Detect the smallest safe change path. Prefer existing business code and existing scripts; do not add parallel start/build/deploy scripts when the existing one can be fixed.
+6. Record only project-specific rules that materially affect future work.
 
-## AI Context
+## Done when
 
-检查：
-
-- AGENTS.md
-- 项目规则
-- CodeGraph
-- Trellis 或同类项目索引工具
-
-未完成项目上下文初始化前，不进行大规模重构。
-
-## Output
-
-输出项目分析结果和后续开发计划。
+The agent can explain how the project starts, where the main frontend/backend paths are, how data flows, how tests run, and how production is currently deployed. Any required CodeGraph/Trellis project initialization is complete or a concrete tool-unavailable reason is reported.

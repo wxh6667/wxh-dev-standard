@@ -1,0 +1,16 @@
+services:
+  app:
+    image: registry.cn-shanghai.aliyuncs.com/heilaowang/replace-project:latest
+    container_name: replace-project
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "${PORT:-8080}:8080"
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+
+# Production compose intentionally has no `build:` section.
+# Replace the image/container name and adapt the internal port/mounts to the real application.
+# Do not add named volumes unless there is a documented project-specific need.

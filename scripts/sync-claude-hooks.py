@@ -5,7 +5,12 @@ Installs the repo-owned hook scripts to ~/.claude/hooks/ and registers them
 in ~/.claude/settings.json. Registration is a safe merge: keys the user
 already owns (env, permissions, model, existing hooks entries, ...) are never
 touched; only the wxh-owned PreToolUse entries are added/updated. A timestamped
-backup of settings.json is taken before the first change.
+backup of settings.json is taken before any change.
+
+Entries are written in the schema-required matcher-group shape:
+{"matcher": "...", "hooks": [{"type": "command", ...}]}. Bare entries
+written by older versions of this script (flagged by `claude /doctor`) are
+migrated in place.
 """
 from __future__ import annotations
 
@@ -22,7 +27,7 @@ SETTINGS_PATH = CLAUDE_DIR / "settings.json"
 
 # hook script name -> PreToolUse matcher
 HOOK_MANIFEST = {
-    "gate-commit-trellis.py": "*",
+    "gate-commit-trellis.py": "Bash",
 }
 
 
@@ -30,16 +35,32 @@ def command_for(script_name: str) -> str:
     return f"python3 {CLAUDE_DIR / 'hooks' / script_name}"
 
 
-def wanted_entry(script_name: str) -> dict:
+def wanted_group(script_name: str) -> dict:
+    """Schema-valid matcher group for the script's wxh-owned entry."""
     return {
-        "type": "command",
-        "command": command_for(script_name),
-        "timeout": 15,
+        "matcher": HOOK_MANIFEST[script_name],
+        "hooks": [
+            {
+                "type": "command",
+                "command": command_for(script_name),
+                "timeout": 15,
+            }
+        ],
     }
 
 
-def entry_matches(existing: object, script_name: str) -> bool:
-    return isinstance(existing, dict) and existing.get("command") == command_for(script_name)
+def is_wxh_group(item: object, script_name: str) -> bool:
+    """True if item is a matcher group whose hooks contain exactly our entry."""
+    if not isinstance(item, dict) or not isinstance(item.get("hooks"), list):
+        return False
+    if item.get("matcher") != HOOK_MANIFEST[script_name]:
+        return False
+    return len(item["hooks"]) == 1 and entry_matches(item["hooks"][0], script_name)
+
+
+def is_legacy_bare_entry(item: object, script_name: str) -> bool:
+    """Bare entry written by older sync versions: invalid schema, no group."""
+    return entry_matches(item, script_name)
 
 
 def sync_hook_script(name: str) -> None:
@@ -62,6 +83,16 @@ def sync_hook_script(name: str) -> None:
     print(f"[hook] SYNC {source} -> {target}")
 
 
+def entry_matches(existing: object, script_name: str) -> bool:
+    """Match a wxh hook entry by script basename, tolerating path-form differences."""
+    if not isinstance(existing, dict):
+        return False
+    command = existing.get("command")
+    if not isinstance(command, str):
+        return False
+    return Path(command).name == script_name
+
+
 def register_settings(script_name: str) -> None:
     settings: dict = {}
     if SETTINGS_PATH.is_file():
@@ -69,30 +100,43 @@ def register_settings(script_name: str) -> None:
     if not isinstance(settings, dict):
         raise SystemExit(f"{SETTINGS_PATH} is not a JSON object; refusing to edit")
 
-    hook_entry = wanted_entry(script_name)
+    hook_group = wanted_group(script_name)
     pretooluse = settings.get("hooks", {}).get("PreToolUse")
     entries = pretooluse if isinstance(pretooluse, list) else []
 
-    for item in entries:
-        if entry_matches(item, script_name):
-            # wxh-owned entry already present; refresh it in place.
-            if isinstance(item, dict) and item != hook_entry:
+    replaced = False
+    for idx, item in enumerate(entries):
+        if is_wxh_group(item, script_name):
+            # wxh-owned group already present; refresh it in place.
+            if isinstance(item, dict) and item != hook_group:
                 item.clear()
-                item.update(hook_entry)
-                print(f"[settings] UPDATED PreToolUse entry for {script_name}")
+                item.update(hook_group)
+                print(f"[settings] UPDATED PreToolUse group for {script_name}")
             else:
-                print(f"[settings] OK PreToolUse entry for {script_name}")
+                print(f"[settings] OK PreToolUse group for {script_name}")
+            replaced = True
             break
-    else:
-        entries.append(hook_entry)
+        if is_legacy_bare_entry(item, script_name):
+            # Old-style bare entry: migrate it to the matcher-group shape.
+            entries[idx] = hook_group
+            print(f"[settings] MIGRATED bare PreToolUse entry for {script_name}")
+            replaced = True
+            break
+
+    if not replaced:
+        entries.append(hook_group)
         if not isinstance(pretooluse, list):
             settings.setdefault("hooks", {})["PreToolUse"] = entries
-        print(f"[settings] ADDED PreToolUse entry for {script_name}")
-        if SETTINGS_PATH.exists():
-            stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-            backup = SETTINGS_PATH.with_name(f"{SETTINGS_PATH.name}.bak-wxh-{stamp}")
-            shutil.copy2(SETTINGS_PATH, backup)
-            print(f"[settings] BACKUP {backup}")
+        print(f"[settings] ADDED PreToolUse group for {script_name}")
+
+    changed = replaced
+    if not SETTINGS_PATH.is_file():
+        changed = True
+    if changed and SETTINGS_PATH.exists():
+        stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+        backup = SETTINGS_PATH.with_name(f"{SETTINGS_PATH.name}.bak-wxh-{stamp}")
+        shutil.copy2(SETTINGS_PATH, backup)
+        print(f"[settings] BACKUP {backup}")
 
     SETTINGS_PATH.write_text(
         json.dumps(settings, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"

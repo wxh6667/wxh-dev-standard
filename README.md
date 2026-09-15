@@ -1,13 +1,13 @@
 # wxh-dev-standard
 
-面向个人开发环境的跨项目全局 AI Coding 配置库。Codex 与 Claude Code 是**两套平行的独立体系**，各自有完整的提示词、Skills、MCP 和 hooks，不共享文件、不做互相兼容层；分别安装、分别更新，不要求同时存在。
+面向个人开发环境的跨项目全局 AI Coding 配置库。Codex、Claude Code 与 ZCode 是**三套平行的独立体系**，各自有完整的提示词、Skills、MCP 和 hooks（按需），不共享文件、不做互相兼容层；分别安装、分别更新，不要求同时存在。
 
-本仓库按工具分两套内容：
+本仓库按工具分三套内容：
 
-1. 根目录 `AGENTS.md`（Codex）/ `CLAUDE.md`（Claude Code）：各自的跨项目长期全局指令；
-2. `skills/`：按任务自动发现和加载的可复用执行流程（两端共用）；
-3. `hooks/`：Claude Code 用户级 hook 脚本（仅 Claude 侧）；
-4. `mcp/`：两端各自的 MCP 基线，只合并，不整份覆盖。
+1. 根目录 `AGENTS.md`（Codex）/ `CLAUDE.md`（Claude Code 与 ZCode）：各自的跨项目长期全局指令；
+2. `skills/`：按任务自动发现和加载的可复用执行流程（Codex 与 ZCode 共用 `~/.agents/skills`，Claude Code 用 `~/.claude/skills`）；
+3. `hooks/`：hook 脚本标准源（Claude Code 原样安装；ZCode 由 `sync-zcode.py` 适配安装）；
+4. `mcp/`：各端 MCP 基线，只合并，不整份覆盖。
 
 具体业务项目自己的需求、架构、数据库说明、项目 `AGENTS.md` / `CLAUDE.md`、Docker/CNB 文件以及 CodeGraph/Trellis 项目状态继续留在各项目中。
 
@@ -16,6 +16,8 @@
 仓库根目录 [`AGENTS.md`](AGENTS.md) **就是 Codex 全局系统提示词的标准源文件**，安装时同步到 `~/.codex/AGENTS.md`。
 
 仓库根目录 [`CLAUDE.md`](CLAUDE.md) **就是 Claude Code 全局提示词的标准源文件**，安装时同步到 `~/.claude/CLAUDE.md`。
+
+同一份 [`CLAUDE.md`](CLAUDE.md) 也是 **ZCode 全局提示词的标准源文件**（ZCode 属 Claude 系，用户级指令文件名为 `~/.zcode/AGENTS.md`），由 `scripts/sync-zcode.py` 同步。
 
 两份文件都不是"只约束 wxh-dev-standard 这个仓库自身"的项目规则，而是从原 Linux AI Coding 环境中的全局提示词整理出来的跨项目长期行为约束。
 
@@ -75,6 +77,19 @@ Claude Code 的 MCP 按 [`mcp/claude.mcp.example.json`](mcp/claude.mcp.example.j
 
 `sync-claude-hooks.py` 额外安装用户级 hooks：Trellis commit 门禁（Trellis 项目无活动任务时拦截 `git commit`，豁免关键字 `no-trellis`）；permissions 基线为 `defaultMode: "acceptEdits"` 加破坏性命令 `ask` 确认列表。
 
+## ZCode 安装
+
+ZCode 侧是独立的一套：用 `CLAUDE.md`（同步为 `~/.zcode/AGENTS.md`）+ `skills/`（与 Codex 共用 `~/.agents/skills`）+ `hooks/` + ZCode MCP，不碰 `~/.codex` 和 `~/.claude`。
+
+```bash
+git clone https://github.com/wxh6667/wxh-dev-standard.git ~/.wxh-dev-standard
+python3 ~/.wxh-dev-standard/scripts/sync-skills.py --codex
+python3 ~/.wxh-dev-standard/scripts/sync-zcode.py
+python3 ~/.wxh-dev-standard/scripts/validate-skills.py
+```
+
+`sync-zcode.py` 幂等完成 ZCode 专属同步（详见 [`INSTALL.md`](INSTALL.md) 的 ZCode 章节）：全局提示词、`references/`+`templates/` 相对路径软链、Trellis commit 门禁 hook（deny 输出适配为退出码 2，因为 ZCode 对 hook stdout 做严格 schema 校验）、MCP 基线与 hook 注册安全合并进 `~/.zcode/cli/config.json`（只新增缺失、带时间戳备份；`${VAR}` 密钥在环境变量未设置时自动省略）。
+
 ## 自动加载
 
 正常使用时用户只描述实际任务，不需要说"加载 xxx Skill"。Skill 的 `description` 负责发现，命中后 Agent 自行读取完整 `SKILL.md` 并执行。
@@ -93,19 +108,25 @@ Claude Code 安装只更新 Claude：
 更新我的 wxh-dev-standard Claude Code 全局开发环境。
 ```
 
+ZCode 安装只更新 ZCode：
+
+```text
+更新我的 wxh-dev-standard ZCode 全局开发环境。
+```
+
 维护流程应只同步对应工具的全局指令和 Skill，并检查对应 MCP 基线；不要因为更新其中一个工具而覆盖另一个工具的配置。
 
 ## 目录
 
 ```text
 AGENTS.md     Codex 全局系统提示词标准源，安装时同步到 ~/.codex/AGENTS.md
-CLAUDE.md     Claude Code 全局系统提示词标准源，安装时同步到 ~/.claude/CLAUDE.md
+CLAUDE.md     Claude Code 全局提示词标准源（~/.claude/CLAUDE.md）；ZCode 全局提示词标准源（~/.zcode/AGENTS.md）
 skills/       4 个核心 Skills（ai-context-init、cnb-ci、docker-build、deployment）
-hooks/        Claude Code 用户级 hook 脚本标准源，安装时同步到 ~/.claude/hooks/
-mcp/          Codex / Claude 脱敏 MCP 基线与安全合并说明
+hooks/        Trellis commit 门禁 hook 标准源（Claude 原样安装；ZCode 由 sync-zcode.py 适配安装）
+mcp/          各端脱敏 MCP 基线与安全合并说明
 migration/    原环境备份的脱敏盘点与迁移说明
 references/   多个 Skill 共用的详细参考
 templates/    项目 Docker / Compose / CNB 等模板
-scripts/      全局指令、Skill、Hook 同步与校验工具
-INSTALL.md    Codex / Claude 分开的自然语言安装与更新说明
+scripts/      全局指令、Skill、Hook 同步与校验工具（含 sync-zcode.py）
+INSTALL.md    Codex / Claude Code / ZCode 分开的自然语言安装与更新说明
 ```

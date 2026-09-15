@@ -1,14 +1,14 @@
 # 安装、迁移与更新
 
-`wxh-dev-standard` 是跨项目全局 AI Coding 配置库。Codex 与 Claude Code 是两套平行的独立体系：Codex 用 `AGENTS.md` + `skills/` + Codex MCP，Claude Code 用 `CLAUDE.md` + `skills/` + `hooks/` + Claude MCP，互不引用、不做兼容层；两者分别安装、分别更新，不要求同时存在。
+`wxh-dev-standard` 是跨项目全局 AI Coding 配置库。Codex、Claude Code 与 ZCode 是三套平行的独立体系：Codex 用 `AGENTS.md` + `skills/` + Codex MCP，Claude Code 用 `CLAUDE.md` + `skills/` + `hooks/` + Claude MCP，ZCode 用 `~/.zcode/AGENTS.md` + `skills/` + `hooks/` + ZCode MCP（skills 与 Codex 共用 `~/.agents/skills`），互不引用、不做兼容层；三者分别安装、分别更新，不要求同时存在。
 
 标准源：
 
 ```text
 AGENTS.md   -> Codex 全局提示词 -> ~/.codex/AGENTS.md
-CLAUDE.md   -> Claude 全局提示词 -> ~/.claude/CLAUDE.md
-skills/     -> 两端各自的全局 Skill 目录
-mcp/        -> 两端各自的 MCP 基线，只合并，不整份覆盖
+CLAUDE.md   -> Claude Code 全局提示词 -> ~/.claude/CLAUDE.md；ZCode 全局提示词 -> ~/.zcode/AGENTS.md
+skills/     -> 各端全局 Skill 目录（Codex 与 ZCode 共用 ~/.agents/skills）
+mcp/        -> 各端 MCP 基线，只合并，不整份覆盖
 ```
 
 业务项目自己的需求、架构、数据库、项目级 `AGENTS.md` / `CLAUDE.md`、Docker/CNB 文件和 CodeGraph/Trellis 项目状态继续留在项目中。
@@ -159,6 +159,70 @@ git -C "$HOME/.wxh-dev-standard" pull --ff-only
 python3 "$HOME/.wxh-dev-standard/scripts/sync-global-instructions.py" --claude
 python3 "$HOME/.wxh-dev-standard/scripts/sync-skills.py" --claude
 python3 "$HOME/.wxh-dev-standard/scripts/sync-claude-hooks.py"
+python3 "$HOME/.wxh-dev-standard/scripts/validate-skills.py"
+```
+
+## ZCode
+
+### 推荐：把这段自然语言直接交给 ZCode
+
+```text
+请初始化这台机器的 wxh-dev-standard ZCode 全局开发环境：
+https://github.com/wxh6667/wxh-dev-standard.git
+
+这是当前系统用户跨项目使用的 ZCode 全局配置体系，不要安装到当前业务项目内部，也不要修改 Codex 配置（不碰 ~/.codex）和 Claude Code 配置（不碰 ~/.claude）。
+
+先检查现有 ~/.zcode/AGENTS.md、~/.zcode/cli/config.json、~/.agents/skills 与已注册的 MCP、hooks。准备替换的内容先做带时间戳备份；未知 Skill、凭证、插件状态和用户自有 MCP 条目不要覆盖。
+
+把仓库作为唯一源码放在 $HOME/.wxh-dev-standard。不存在就 clone；已经存在且 remote 正确就使用 fast-forward-only 更新，不 reset --hard。
+
+把仓库 skills/ 安装到 $HOME/.agents/skills（ZCode 与 Codex 共用该目录），并在 $HOME/.agents 下补 references/、templates/ 软链，保证 Skill 内 `../../references/...` 相对路径可解析。仓库根目录 CLAUDE.md 是 ZCode 全局提示词标准源（ZCode 属 Claude 系，用户级指令文件名为 ~/.zcode/AGENTS.md）。然后运行 scripts/sync-zcode.py 完成 ZCode 专属同步，最后运行 scripts/validate-skills.py 校验。
+
+执行 Maven/Gradle、大型前端构建、完整测试等重任务时，主机必须以至少约 2 GiB MemAvailable 为安全底线；无法守住安全线就降低并发、限制任务或停止该重任务，不擅自停止生产服务腾内存。
+
+最后实际验证：全局 Skills 可发现且校验通过、MCP 服务可启动、hook 已注册且 hooks.enabled 为 true。只报告实际结果、冲突、备份位置和仍需人工处理的问题。
+```
+
+### ZCode 手工安装
+
+Linux / macOS：
+
+```bash
+if [ -d "$HOME/.wxh-dev-standard/.git" ]; then
+  git -C "$HOME/.wxh-dev-standard" pull --ff-only
+else
+  git clone https://github.com/wxh6667/wxh-dev-standard.git "$HOME/.wxh-dev-standard"
+fi
+
+python3 "$HOME/.wxh-dev-standard/scripts/sync-skills.py" --codex
+python3 "$HOME/.wxh-dev-standard/scripts/sync-zcode.py"
+python3 "$HOME/.wxh-dev-standard/scripts/validate-skills.py"
+```
+
+`sync-zcode.py` 完成 ZCode 专属同步（幂等，可重复运行；改动 `~/.zcode/cli/config.json` 前自动做带时间戳备份）：
+
+1. 仓库 `CLAUDE.md` -> `~/.zcode/AGENTS.md`（ZCode 用户级指令文件；内容取 Claude 系提示词，含 Trellis 任务规则与权限确认清单）；
+2. `~/.agents/references`、`~/.agents/templates` 软链到仓库对应目录（`cnb-ci`、`docker-build` 的 Skill 通过 `../../` 相对路径引用它们）；
+3. `hooks/gate-commit-trellis.py` 安装到 `~/.zcode/hooks/`，并把 deny 输出适配为退出码 2 + stderr——ZCode 对 hook stdout 做严格 schema 校验，Claude 的 `hookSpecificOutput` 键会被作废导致门禁静默失效；上游脚本有变动时脚本会报错提醒，不会静默装坏；
+4. MCP 基线按 `mcp/claude.mcp.example.json` 安全合并进 `~/.zcode/cli/config.json` 的 `mcp.servers`：只新增缺失服务、绝不覆盖已有条目；`${VAR}` 形式的密钥在对应环境变量未设置时自动省略（context7 匿名模式可用，设置 `CONTEXT7_API_KEY` 后重跑脚本即可带上）；
+5. Trellis commit 门禁注册进同一 `config.json` 的 `hooks`（`enabled: true`、PreToolUse/Bash、15 秒超时；ZCode 配置文件 hook 必须显式 `enabled: true` 才会运行）。
+
+仓库的 Claude 权限基线（`defaultMode: "acceptEdits"` + 破坏性命令 `ask` 清单）是 Claude settings.json 机制，ZCode 有自己的权限体系，不在此同步范围。
+
+### ZCode 更新
+
+直接说：
+
+```text
+更新我的 wxh-dev-standard ZCode 全局开发环境。只更新 ZCode：安全拉取仓库，同步 $HOME/.agents/skills，重新运行 sync-zcode.py，运行 Skill 校验并检查 MCP 基线变化；不要修改 Codex 与 Claude Code 配置。
+```
+
+手工更新：
+
+```bash
+git -C "$HOME/.wxh-dev-standard" pull --ff-only
+python3 "$HOME/.wxh-dev-standard/scripts/sync-skills.py" --codex
+python3 "$HOME/.wxh-dev-standard/scripts/sync-zcode.py"
 python3 "$HOME/.wxh-dev-standard/scripts/validate-skills.py"
 ```
 

@@ -21,13 +21,10 @@
         "FASTMCP_LOG_LEVEL": "ERROR"
       }
     },
-    "codegraph": {
+    "serena": {
       "type": "stdio",
-      "command": "codegraph",
-      "args": ["serve", "--mcp"],
-      "env": {
-        "CODEGRAPH_NO_DAEMON": "1"
-      }
+      "command": "uvx",
+      "args": ["-p", "3.13", "serena-agent", "start-mcp-server", "--project-from-cwd", "--context", "claude-code"]
     },
     "playwright": {
       "type": "stdio",

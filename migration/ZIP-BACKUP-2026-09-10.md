@@ -87,7 +87,7 @@ Codex `.codex/skills/.system` 属于旧环境中的 Codex 系统 Skill 数据，
 
 原 Codex `~/.codex/config.toml` 中确认配置过：
 
-- `codegraph`
+- `serena`（当前基线）
 - `context7`
 - `deobfuscate-mcp-server`（当时禁用）
 - `fastctx`
@@ -95,6 +95,8 @@ Codex `.codex/skills/.system` 属于旧环境中的 Codex 系统 Skill 数据，
 - `mcp-server-time`
 - `openaiDeveloperDocs`
 - `playwright`
+
+**历史说明**：早期版本使用 `codegraph` 作为代码查询工具，当前基线已替换为 `serena`，提供更完整的符号级编辑、重构和调试能力。
 
 原 `.codex/mcp-servers.json` 只记录了部分服务器，不能当作 Codex 当前完整事实来源。当前 Codex 的 MCP 正式配置源是 `~/.codex/config.toml` 中的 `[mcp_servers.*]`。
 

@@ -9,7 +9,7 @@
 3. `hooks/`：hook 脚本标准源（Claude Code 原样安装；ZCode 由 `sync-zcode.py` 适配安装）；
 4. `mcp/`：各端 MCP 基线，只合并，不整份覆盖。
 
-具体业务项目自己的需求、架构、数据库说明、项目 `AGENTS.md` / `CLAUDE.md`、Docker/CNB 文件以及 CodeGraph/Trellis 项目状态继续留在各项目中。
+具体业务项目自己的需求、架构、数据库说明、项目 `AGENTS.md` / `CLAUDE.md`、Docker/CNB 文件以及 Serena/Trellis 项目状态继续留在各项目中。
 
 ## 全局提示词标准源
 
@@ -25,7 +25,7 @@
 
 本仓库只保留**官方插件和基本能力不涵盖**的业务工具和规范：
 
-1. **ai-context-init** - CodeGraph/Trellis 项目初始化（你的私有工具）
+1. **ai-context-init** - Serena/Trellis 项目初始化（你的私有工具）
 2. **cnb-ci** - CNB 远程构建 + 阿里云 Registry 规范
 3. **docker-build** - 单镜像规则 + docker/ 目录规范
 4. **deployment** - docker-compose.yml + .env + bind mounts 规范
@@ -35,7 +35,7 @@
 ## 核心交付约定
 
 - 修改现有项目先理解真实结构和业务，优先复用已有代码、脚本和部署方式。
-- CodeGraph、Trellis 已安装但当前项目未初始化时，由 `ai-context-init` 完成项目级初始化。
+- Serena、Trellis 已安装但当前项目未初始化时，由 `ai-context-init` 完成项目级初始化。
 - 同一可交付业务运行类型默认维护 **1 个最终自定义业务镜像**；不要仅因为 frontend/backend/nginx 技术分层就自动拆多个自定义镜像。
 - 生产业务镜像默认由 CNB 构建，不以本机 `docker build` 作为生产交付路径。
 - 默认 Registry 前缀：`registry.cn-shanghai.aliyuncs.com/heilaowang/<project>`。

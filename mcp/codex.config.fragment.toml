@@ -15,9 +15,6 @@ args = ["serve", "--mcp"]
 [mcp_servers.codegraph.env]
 CODEGRAPH_NO_DAEMON = "1"
 
-[mcp_servers.openaiDeveloperDocs]
-url = "https://developers.openai.com/mcp"
-
 [mcp_servers.playwright]
 command = "npx"
 args = ["@playwright/mcp@latest", "--isolated", "--no-sandbox"]

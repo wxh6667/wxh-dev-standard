@@ -2,8 +2,8 @@
 """Install wxh-dev-standard ZCode global environment (prompt, path links, hook, MCP).
 
 ZCode is a third parallel target beside Codex and Claude Code:
-- CLAUDE.md -> ~/.zcode/AGENTS.md (ZCode user instruction file; ZCode follows the
-  Claude-family prompt but names its user instruction file AGENTS.md)
+- zcode/AGENTS.md -> ~/.zcode/AGENTS.md (ZCode has its own prompt source derived
+  from the shared baseline, specialized with ZCode plugin/skill/MCP conventions)
 - ~/.agents/references + ~/.agents/templates symlinks so skill-internal
   ../../references/... paths resolve under the symlinked skill installation
 - hooks/gate-commit-trellis.py -> ~/.zcode/hooks/ with a ZCode deny adaptation:
@@ -29,7 +29,7 @@ from datetime import datetime
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-AGENTS_SOURCE = ROOT / "CLAUDE.md"
+AGENTS_SOURCE = ROOT / "zcode" / "AGENTS.md"
 AGENTS_TARGET = Path.home() / ".zcode" / "AGENTS.md"
 HOOK_SOURCE = ROOT / "hooks" / "gate-commit-trellis.py"
 HOOK_TARGET = Path.home() / ".zcode" / "hooks" / "gate-commit-trellis.py"

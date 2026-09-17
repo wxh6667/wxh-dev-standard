@@ -6,7 +6,8 @@
 
 ```text
 AGENTS.md   -> Codex 全局提示词 -> ~/.codex/AGENTS.md
-CLAUDE.md   -> Claude Code 全局提示词 -> ~/.claude/CLAUDE.md；ZCode 全局提示词 -> ~/.zcode/AGENTS.md
+CLAUDE.md   -> Claude Code 全局提示词 -> ~/.claude/CLAUDE.md
+zcode/AGENTS.md -> ZCode 全局提示词 -> ~/.zcode/AGENTS.md（与 CLAUDE.md 同一套基础约束，仅保留 ZCode 真实差异）
 skills/     -> 各端全局 Skill 目录（Codex 与 ZCode 共用 ~/.agents/skills）
 skills-vendor/ -> 第三方 Skills 快照（cloudflare / mattpocock / app-shell-ui），与 skills/ 一并由 sync-skills.py 链接分发，更新方法见 skills-vendor/SOURCES.md
 mcp/        -> 各端 MCP 基线，只合并，不整份覆盖
@@ -177,7 +178,7 @@ https://github.com/wxh6667/wxh-dev-standard.git
 
 把仓库作为唯一源码放在 $HOME/.wxh-dev-standard。不存在就 clone；已经存在且 remote 正确就使用 fast-forward-only 更新，不 reset --hard。
 
-把仓库 skills/ 安装到 $HOME/.agents/skills（ZCode 与 Codex 共用该目录），并在 $HOME/.agents 下补 references/、templates/ 软链，保证 Skill 内 `../../references/...` 相对路径可解析。仓库根目录 CLAUDE.md 是 ZCode 全局提示词标准源（ZCode 属 Claude 系，用户级指令文件名为 ~/.zcode/AGENTS.md）。然后运行 scripts/sync-zcode.py 完成 ZCode 专属同步，最后运行 scripts/validate-skills.py 校验。
+把仓库 skills/ 安装到 $HOME/.agents/skills（ZCode 与 Codex 共用该目录），并在 $HOME/.agents 下补 references/、templates/ 软链，保证 Skill 内 `../../references/...` 相对路径可解析。仓库 zcode/AGENTS.md 是 ZCode 全局提示词标准源（ZCode 用户级指令文件名为 ~/.zcode/AGENTS.md）。然后运行 scripts/sync-zcode.py 完成 ZCode 专属同步，最后运行 scripts/validate-skills.py 校验。
 
 执行 Maven/Gradle、大型前端构建、完整测试等重任务时，主机必须以至少约 2 GiB MemAvailable 为安全底线；无法守住安全线就降低并发、限制任务或停止该重任务，不擅自停止生产服务腾内存。
 

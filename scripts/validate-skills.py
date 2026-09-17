@@ -4,11 +4,29 @@ import re
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
-SKILLS = ROOT / "skills"
 errors = []
 count = 0
 
-for directory in sorted(p for p in SKILLS.iterdir() if p.is_dir()):
+# 自研 skills/<skill>；第三方 skills-vendor/<vendor>/<skill>，
+# vendor 目录自身含 SKILL.md 时视为单个 skill（如 app-shell-ui）。
+OWNED = ROOT / "skills"
+VENDOR = ROOT / "skills-vendor"
+
+
+def collect(source: Path, *, is_vendored: bool) -> list[tuple[Path, bool]]:
+    if not source.is_dir():
+        return []
+    if (source / "SKILL.md").is_file():
+        return [(source, is_vendored)]
+    return [(d, is_vendored) for d in sorted(p for p in source.iterdir() if p.is_dir())]
+
+
+dirs = collect(OWNED, is_vendored=False)
+if VENDOR.is_dir():
+    for vendor in sorted(p for p in VENDOR.iterdir() if p.is_dir()):
+        dirs.extend(collect(vendor, is_vendored=True))
+
+for directory, is_vendored in sorted(dirs):
     skill = directory / "SKILL.md"
     if not skill.exists():
         errors.append(f"{directory.relative_to(ROOT)}: missing SKILL.md")
@@ -37,6 +55,9 @@ for directory in sorted(p for p in SKILLS.iterdir() if p.is_dir()):
     if not desc_match or not desc_match.group(1).strip(" '\""):
         errors.append(f"{skill.relative_to(ROOT)}: missing description")
 
+    # 上游触发策略按 vendor 快照原样保留，只对自研 skill 校验隐式触发。
+    if is_vendored:
+        continue
     openai_meta = directory / "agents" / "openai.yaml"
     if openai_meta.exists():
         meta = openai_meta.read_text(encoding="utf-8")

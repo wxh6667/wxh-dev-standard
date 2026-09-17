@@ -8,17 +8,32 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-SOURCE = ROOT / "skills"
+# 自研 skills/<skill> 与第三方 skills-vendor/<vendor>/<skill> 一并分发；
+# vendor 目录自身含 SKILL.md 时视为单个 skill（如 app-shell-ui），
+# 各目录下的 README / SOURCES 等非 skill 文件自动跳过。
+SOURCES: list[Path] = [ROOT / "skills"]
 CODEX_USER = Path.home() / ".agents" / "skills"
 CODEX_ADMIN = Path("/etc/codex/skills")
 CLAUDE_USER = Path.home() / ".claude" / "skills"
+_vendor_root = ROOT / "skills-vendor"
+if _vendor_root.is_dir():
+    for vendor in sorted(p for p in _vendor_root.iterdir() if p.is_dir()):
+        if (vendor / "SKILL.md").is_file():
+            SOURCES.append(vendor)
+        else:
+            SOURCES.extend(p for p in vendor.iterdir() if p.is_dir())
 
 
 def skill_dirs() -> list[Path]:
-    return sorted(
-        p for p in SOURCE.iterdir()
-        if p.is_dir() and (p / "SKILL.md").is_file()
-    )
+    dirs: list[Path] = []
+    for source in SOURCES:
+        dirs.extend(
+            p for p in source.iterdir()
+            if p.is_dir() and (p / "SKILL.md").is_file()
+        )
+        if (source / "SKILL.md").is_file():
+            dirs.append(source)
+    return sorted(set(dirs))
 
 
 def same_target(link: Path, source: Path) -> bool:

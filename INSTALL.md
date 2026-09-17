@@ -8,6 +8,7 @@
 AGENTS.md   -> Codex 全局提示词 -> ~/.codex/AGENTS.md
 CLAUDE.md   -> Claude Code 全局提示词 -> ~/.claude/CLAUDE.md；ZCode 全局提示词 -> ~/.zcode/AGENTS.md
 skills/     -> 各端全局 Skill 目录（Codex 与 ZCode 共用 ~/.agents/skills）
+skills-vendor/ -> 第三方 Skills 快照（cloudflare / mattpocock / app-shell-ui），与 skills/ 一并由 sync-skills.py 链接分发，更新方法见 skills-vendor/SOURCES.md
 mcp/        -> 各端 MCP 基线，只合并，不整份覆盖
 ```
 

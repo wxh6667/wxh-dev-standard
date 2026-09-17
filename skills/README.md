@@ -1,10 +1,10 @@
 # Skills
 
-本目录采用通用 Agent Skills 结构。整套库默认安装到 Agent 的**全局发现目录**，跨项目复用；业务项目不需要复制整套 `skills/`。
+本目录是**自研 skill**（13 个），采用通用 Agent Skills 结构，默认安装到 Agent 的**全局发现目录**，跨项目复用；业务项目不需要复制整套 `skills/`。第三方 skill 快照在兄弟目录 [`skills-vendor/`](../skills-vendor/SOURCES.md)，由 `scripts/sync-skills.py` 一并分发。
 
-## 核心 Skills（已精简至 4 个）
+## 自研 Skills（13 个）
 
-本仓库只保留**官方插件和基本能力不涵盖**的业务工具和规范：
+只保留**官方插件、系统能力和第三方快照都不涵盖**的自有工具与规范：
 
 ### 业务工具集成
 
@@ -16,11 +16,23 @@
 - **docker-build** - 一个独立业务运行类型一个最终自定义镜像规范；生产镜像不在本地构建
 - **deployment** - 使用 `docker-compose.yml + .env` 拉取并启动线上服务
 
+### 通用增强
+
+- **code-review** - 自研中文评审框架（合同恢复、风险面、证据强度、兜底路径专项审查）
+- **context7-mcp** - 引导用 Context7 查最新库文档
+- **batch-execution** - 批量相似任务处理，防单点错误扩散
+- **company-research-brief** - 公司公开资料调研与尽调简报
+- **github-solution-research** - 到 GitHub issues/PR/discussions 找现成方案
+- **moyu** - 检测并阻止过度工程模式
+- **workflow-route-mapper** - 分叉/路线/探索树持久化
+- **xy-axis-thinking** - 归因、目标与同期参照比较
+- **write-instructions-zh** - 编写维护 AGENTS.md / 系统提示词 / 长期规则
+
 ## 设计原则
 
 开发流程本质是：**发现问题 → 积攒问题 → 解决问题 → 构建 → 复审**
 
-其他开发能力（代码实现、测试、调试、架构决策、Git 操作等）由 Claude Code 系统能力和官方插件处理，不需要单独的 Skill。
+工程流程类能力（grilling、tdd、implement、wayfinder 等）使用 `skills-vendor/mattpocock/` 快照；Cloudflare 平台与前端规范使用 `skills-vendor/cloudflare/` 与 `skills-vendor/app-shell-ui/`。其余开发能力由各端系统能力和官方插件处理。
 
 每个 Skill 至少包含一个带 YAML frontmatter 的 `SKILL.md`：
 

@@ -90,6 +90,8 @@ python3 ~/.wxh-dev-standard/scripts/validate-skills.py
 
 `sync-zcode.py` 幂等完成 ZCode 专属同步（详见 [`INSTALL.md`](INSTALL.md) 的 ZCode 章节）：全局提示词、`references/`+`templates/` 相对路径软链、Trellis commit 门禁 hook（deny 输出适配为退出码 2，因为 ZCode 对 hook stdout 做严格 schema 校验）、MCP 基线与 hook 注册安全合并进 `~/.zcode/cli/config.json`（只新增缺失、带时间戳备份；`${VAR}` 密钥在环境变量未设置时自动省略）。
 
+项目级 `.zcode/config.json` 的钩子命令必须用 git 锚定而不是直拼 `${ZCODE_PROJECT_DIR}`——该变量随 shell cwd 漂移，直拼会导致对话 `cd` 进子目录后钩子全部报错。根因、命令模板与验证方法见 [`references/zcode-hook-pitfalls.md`](references/zcode-hook-pitfalls.md)。
+
 ## 自动加载
 
 正常使用时用户只描述实际任务，不需要说"加载 xxx Skill"。Skill 的 `description` 负责发现，命中后 Agent 自行读取完整 `SKILL.md` 并执行。

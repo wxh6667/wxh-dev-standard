@@ -39,6 +39,25 @@ hooks_prompt_block: python3: can't open file '<项目根>/<子目录>/.zcode/hoo
 - 用户级 hook（如 `gate-commit-trellis.py`）用绝对路径注册，天然免疫此坑，不需要改。
 - `.claude/settings.json` 若用相对路径（`python3 .claude/hooks/x.py`）属同类隐患，Claude Code 平台是否同样受影响未验证，遇到再按同思路处理。
 
+## 系统级修复（生成器模板 + 批量脚本）
+
+上游 `@mindfoldhq/trellis` 截至 0.6.17（2026-09-11）生成的仍是脆弱形态，升级不能解决。本机系统级落地方案（2026-09-17 完成）：
+
+1. **补丁打在全局安装的生成器模板上**：`$(npm root -g)/@mindfoldhq/trellis/dist/templates/zcode/config.json` 四条命令改为锚定形态（`{{PYTHON_CMD}}` 占位符保留）。以后 `trellis init` / 平台胶水安装生成的项目天生正确。注意：**npm 升级该包会还原模板**，升级后重跑脚本即可。
+2. **批量修复/巡检脚本 `scripts/fix-zcode-hook-paths.py`**（幂等，写前带时间戳备份）：
+   ```bash
+   python3 scripts/fix-zcode-hook-paths.py --check <项目目录>...      # 只读巡检，有脆弱命令退出码 1
+   python3 scripts/fix-zcode-hook-paths.py --trellis-template <项目目录>...  # 模板 + 项目一起修
+   ```
+   已经锚定的命令原样跳过，所以可安全反复执行；`trellis update` 重新生成项目配置后重跑一遍即可复原。
+3. **已修复项目（2026-09-17）**：beer-machine、owncast、yshop-drink、vehicle-link；同时清理了历史遗留的子目录 `.zcode` 转发存根/副本（beer-machine 的 docker、RuoYi-App、RuoYi-Vue3、RuoYi-Java、RuoYi-Java/sql/schema，owncast 的 web，yshop-drink 的 docker）——配置锚定仓库根后这些副本不再被任何路径解析命中，留着只会漂移和误导。
+
+限制与边界：
+
+- 锚定命令用了 `$()` / `||`，**仅适用 POSIX shell 的 host**（本机 Linux）；Windows host 不适用此改法。
+- 前提是项目 git 仓库无嵌套 `.git`，有嵌套仓库的项目不能套用。
+- claude 平台模板（`.claude/settings.json` 的相对路径写法）**未改**：真实 Claude Code 的 hook 进程 cwd 锚定在项目根，相对路径成立且未观察到故障；若未来观察到同类漂移再按相同思路处理。
+
 ## 验证方法
 
 不要只测仓库根场景。模拟"故障场景"（把 `ZCODE_PROJECT_DIR` 指到子目录）逐条执行钩子命令：
@@ -67,4 +86,4 @@ for event, groups in cfg['hooks']['events'].items():
 
 ## 维护提醒
 
-Trellis 生成的 `.zcode/config.json` 若被 `trellis update` 或重新安装平台胶水覆盖，钩子命令会退回 `${ZCODE_PROJECT_DIR}` 直拼形态，此坑复发。覆盖后按本页"根治方案"重套一遍命令模板，并用"验证方法"跑一遍矩阵。
+Trellis 生成的 `.zcode/config.json` 若被 `trellis update` 或重新安装平台胶水覆盖，钩子命令会退回 `${ZCODE_PROJECT_DIR}` 直拼形态，此坑复发。覆盖后重跑 `scripts/fix-zcode-hook-paths.py`（含 `--trellis-template`），并用"验证方法"跑一遍矩阵。新增 Trellis 项目后建议用 `--check` 巡检一次。

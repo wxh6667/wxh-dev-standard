@@ -1,12 +1,16 @@
 #!/usr/bin/env python3
-"""Install wxh-dev-standard Claude Code hooks and permissions baseline into ~/.claude.
+"""Install wxh-dev-standard Claude Code hooks, statusline and permissions baseline into ~/.claude.
 
-Installs the repo-owned hook scripts to ~/.claude/hooks/ and registers them
-in ~/.claude/settings.json, and merges the wxh-owned permissions baseline
-(defaultMode + dangerous-command ask list) into the same file. Registration
+Installs the repo-owned hook scripts to ~/.claude/hooks/ and the statusline
+script to ~/.claude/statusline.sh, registers the hooks in
+~/.claude/settings.json, and merges the wxh-owned permissions baseline
+(defaultMode + dangerous-command ask list) and the wxh-owned statusLine
+block into the same file. Registration
 is a safe merge: env, model, secrets and every other user-owned key are
-never touched; only the wxh-owned PreToolUse entries and the wxh-owned
-permissions keys are added/updated. User-added `ask` entries are preserved
+never touched; only the wxh-owned PreToolUse entries, the wxh-owned
+permissions keys and a statusLine block pointing at the wxh script are
+added/updated. A user-configured statusLine pointing anywhere else is kept.
+User-added `ask` entries are preserved
 and re-running the script re-adds removed baseline entries. A timestamped
 backup of settings.json is taken before any change.
 
@@ -25,8 +29,10 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 HOOKS_SOURCE = ROOT / "hooks"
+STATUSLINE_SOURCE = ROOT / "statusline.sh"
 CLAUDE_DIR = Path.home() / ".claude"
 SETTINGS_PATH = CLAUDE_DIR / "settings.json"
+STATUSLINE_REFRESH_INTERVAL = 120
 
 # hook script name -> PreToolUse matcher
 HOOK_MANIFEST = {
@@ -91,24 +97,33 @@ def is_legacy_bare_entry(item: object, script_name: str) -> bool:
     return entry_matches(item, script_name)
 
 
+def install_script(source: Path, target: Path, label: str) -> None:
+    if target.is_file() and target.read_bytes() == source.read_bytes():
+        print(f"[{label}] OK {target}")
+        return
+    if target.exists() or target.is_symlink():
+        stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+        backup = target.with_name(f"{target.name}.bak-wxh-{stamp}")
+        shutil.copy2(target, backup)
+        print(f"[{label}] BACKUP {backup}")
+    shutil.copy2(source, target)
+    target.chmod(0o755)
+    print(f"[{label}] SYNC {source} -> {target}")
+
+
 def sync_hook_script(name: str) -> None:
     source = HOOKS_SOURCE / name
     if not source.is_file():
         raise SystemExit(f"missing hook source: {source}")
     target_dir = CLAUDE_DIR / "hooks"
     target_dir.mkdir(parents=True, exist_ok=True)
-    target = target_dir / name
-    if target.is_file() and target.read_bytes() == source.read_bytes():
-        print(f"[hook] OK {target}")
-        return
-    if target.exists() or target.is_symlink():
-        stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-        backup = target.with_name(f"{target.name}.bak-wxh-{stamp}")
-        shutil.copy2(target, backup)
-        print(f"[hook] BACKUP {backup}")
-    shutil.copy2(source, target)
-    target.chmod(0o755)
-    print(f"[hook] SYNC {source} -> {target}")
+    install_script(source, target_dir / name, "hook")
+
+
+def sync_statusline_script() -> None:
+    if not STATUSLINE_SOURCE.is_file():
+        raise SystemExit(f"missing statusline source: {STATUSLINE_SOURCE}")
+    install_script(STATUSLINE_SOURCE, CLAUDE_DIR / "statusline.sh", "statusline")
 
 
 def entry_matches(existing: object, script_name: str) -> bool:
@@ -184,9 +199,45 @@ def sync_permissions(settings: dict) -> None:
                 print(f"[settings] OK permissions.{key}")
 
 
+def statusline_baseline() -> dict:
+    return {
+        "type": "command",
+        "command": f"bash {CLAUDE_DIR / 'statusline.sh'}",
+        "refreshInterval": STATUSLINE_REFRESH_INTERVAL,
+    }
+
+
+def is_wxh_statusline(entry: object) -> bool:
+    """True if the statusLine block points at the wxh-installed script."""
+    return (
+        isinstance(entry, dict)
+        and isinstance(entry.get("command"), str)
+        and Path(entry["command"]).name == "statusline.sh"
+    )
+
+
+def sync_statusline(settings: dict) -> None:
+    """Write the wxh-owned statusLine block.
+
+    A user-configured statusLine pointing anywhere else (e.g. ccstatusline)
+    is never touched; only a missing block or a previous wxh-owned one is
+    (re)written.
+    """
+    existing = settings.get("statusLine")
+    if existing is not None and not is_wxh_statusline(existing):
+        print("[settings] KEEP user-owned statusLine")
+        return
+    baseline = statusline_baseline()
+    if existing != baseline:
+        settings["statusLine"] = baseline
+        print("[settings] UPDATED statusLine")
+    else:
+        print("[settings] OK statusLine")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Install wxh-dev-standard Claude Code hooks and permissions baseline (scripts + safe settings merge)."
+        description="Install wxh-dev-standard Claude Code hooks, statusline and permissions baseline (scripts + safe settings merge)."
     )
     parser.parse_args()
 
@@ -199,11 +250,13 @@ def main() -> int:
     changed = False
     for name in HOOK_MANIFEST:
         sync_hook_script(name)
+    sync_statusline_script()
 
     before = json.dumps(settings, sort_keys=True, ensure_ascii=False)
     for name in HOOK_MANIFEST:
         register_settings(name, settings)
     sync_permissions(settings)
+    sync_statusline(settings)
     if json.dumps(settings, sort_keys=True, ensure_ascii=False) != before:
         changed = True
     if changed or not SETTINGS_PATH.is_file():

@@ -40,10 +40,6 @@
       "type": "stdio",
       "command": "uvx",
       "args": ["--with", "mcp<2", "mcp-server-time==2026.7.10", "--local-timezone=Asia/Shanghai"]
-    },
-    "openaiDeveloperDocs": {
-      "type": "http",
-      "url": "https://developers.openai.com/mcp"
     }
   }
 }

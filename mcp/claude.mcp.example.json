@@ -31,11 +31,6 @@
       "command": "npx",
       "args": ["@playwright/mcp@latest", "--isolated", "--no-sandbox"]
     },
-    "figma-bridge": {
-      "type": "stdio",
-      "command": "npx",
-      "args": ["-y", "@gethopp/figma-mcp-bridge"]
-    },
     "mcp-server-time": {
       "type": "stdio",
       "command": "uvx",

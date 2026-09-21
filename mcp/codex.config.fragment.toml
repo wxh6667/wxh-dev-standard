@@ -23,10 +23,6 @@ startup_timeout_sec = 600
 [mcp_servers.playwright.tools.browser_close]
 approval_mode = "approve"
 
-[mcp_servers.figma-bridge]
-command = "npx"
-args = ["-y", "@gethopp/figma-mcp-bridge"]
-
 [mcp_servers.mcp-server-time]
 command = "uvx"
 args = ["--with", "mcp<2", "mcp-server-time==2026.7.10", "--local-timezone=Asia/Shanghai"]

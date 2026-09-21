@@ -12,13 +12,13 @@
 | sequential-thinking | https://github.com/modelcontextprotocol/servers | 是（npm `@modelcontextprotocol/server-sequential-thinking`） |
 | serena | https://github.com/oraios/serena（PyPI `serena-agent`，需 Python 3.13） | 是（stdio `uvx -p 3.13 serena-agent start-mcp-server`） |
 | playwright | https://github.com/microsoft/playwright-mcp | 是（npm `@playwright/mcp`） |
-| figma-bridge | https://github.com/gethopp/figma-mcp-bridge | 是（npm `@gethopp/figma-mcp-bridge`） |
+| figma-bridge | https://github.com/gethopp/figma-mcp-bridge | 仅按需，不在基线（设计稿转代码时再装） |
 | mcp-server-time | https://github.com/modelcontextprotocol/servers（`src/time`） | 是（PyPI `mcp-server-time`） |
 | awslabs.document-loader | https://github.com/awslabs/mcp（document-loader-mcp-server） | 仅 Claude（PyPI `awslabs.document-loader-mcp-server`） |
 | fastctx | 私有/机器绑定的可执行文件，无公开上游 | 仅按需，不在基线 |
 | deobfuscate-mcp-server | 源环境中已禁用，不安装 | 否 |
 
-除 awslabs document loader（Claude 专用）外，其余 MCP 两端基线保持能力对齐，差别只在配置格式（Codex TOML / Claude JSON）。
+除 awslabs document loader（Claude 专用）和 figma-bridge（按需，不在基线）外，其余 MCP 两端基线保持能力对齐，差别只在配置格式（Codex TOML / Claude JSON）。
 
 **Serena 专属说明**：Serena 需要 Python 3.13 和 uv。安装前执行：
 ```bash
@@ -45,7 +45,7 @@ Codex 当前正式 MCP 配置源是 `~/.codex/config.toml` 中的 `[mcp_servers.
 
 ## Claude Code
 
-`claude.mcp.example.json` 是 Claude Code 的可移植 MCP 基线，与 Codex 片段来自同一份原环境，两套保持能力对齐：Context7、sequential-thinking、AWS document loader、CodeGraph、Playwright、Figma bridge 和 mcp-server-time。
+`claude.mcp.example.json` 是 Claude Code 的可移植 MCP 基线，与 Codex 片段来自同一份原环境，当前基线：Context7、sequential-thinking、AWS document loader、Serena、Playwright 和 mcp-server-time；figma-bridge 按需安装，不在基线。
 
 安装到新机器时应：
 
@@ -69,7 +69,7 @@ MCP 提供工具能力，Skill 决定什么时候、如何使用工具，全局�
 | context7 | `context7-docs` | 何时查库文档、如何解析 library ID 全部在 Skill 中；MCP 只提供查询工具 |
 | serena | `ai-context-init`（项目初始化时确认是否初始化 Serena） | 提供符号查询、编辑、重构和调试工具；初始化流程在 Skill 中 |
 | playwright | 无专门 Skill，`delivery` / `deployment` 的"验证真实页面/API 路径"是它的主要使用场景 | 纯工具能力，安装即用 |
-| figma-bridge | 无 | 纯工具能力（设计稿到代码桥接），按需使用 |
+| figma-bridge | 无 | 纯工具能力（设计稿转代码桥接），按需安装，不在基线 |
 | sequential-thinking | 无 | 纯工具能力（结构化推理），按需使用 |
 | mcp-server-time | 无 | 纯工具能力（时间/时区查询），按需使用 |
 | awslabs.document-loader | 无 | Claude 侧独有的文档读取能力（PDF/Word/Excel/PPT） |

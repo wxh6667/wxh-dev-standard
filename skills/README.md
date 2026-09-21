@@ -19,7 +19,7 @@
 ### 通用增强
 
 - **code-review** - 自研中文评审框架（合同恢复、风险面、证据强度、兜底路径专项审查）
-- **context7-mcp** - 引导用 Context7 查最新库文档
+- **context7-docs** - 查第三方库/框架/SDK 最新文档；API 用法、配置、版本迁移优先走 Context7，不凭记忆或 WebSearch 回答
 - **batch-execution** - 批量相似任务处理，防单点错误扩散
 - **company-research-brief** - 公司公开资料调研与尽调简报
 - **github-solution-research** - 到 GitHub issues/PR/discussions 找现成方案

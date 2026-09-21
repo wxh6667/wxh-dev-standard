@@ -30,7 +30,7 @@ Codex、Claude Code 与 ZCode 三端平行、分别安装更新；重叠的消�
 
 `skills/` 是**自研 skill**（官方插件和基本能力不涵盖的业务工具、规范与个人常用流程），`scripts/sync-skills.py` 把两者一并以符号链接分发到各端全局目录：
 
-- **skills/**（13 个）：ai-context-init、cnb-ci、docker-build、deployment（业务四件套）；code-review（自研评审框架）、context7-mcp、batch-execution、company-research-brief、github-solution-research、moyu、workflow-route-mapper、xy-axis-thinking、write-instructions-zh（通用增强）。
+- **skills/**（13 个）：ai-context-init、cnb-ci、docker-build、deployment（业务四件套）；code-review（自研评审框架）、context7-docs、batch-execution、company-research-brief、github-solution-research、moyu、workflow-route-mapper、xy-axis-thinking、write-instructions-zh（通用增强）。
 - **skills-vendor/**（55 个）：第三方 skill 快照，一并入仓供离线一键安装——cloudflare/ 14 个（Workers 平台全家桶，含 web-perf 前端性能审计）、mattpocock/ 40 个（工程流程系）、app-shell-ui/ 1 个（前端双模式 UI 规范）。来源与同步方法见 [`skills-vendor/SOURCES.md`](skills-vendor/SOURCES.md)。
 
 其他开发能力（发现问题、解决问题、构建、复审）由各端系统能力和官方插件处理。

@@ -1,11 +1,11 @@
 ---
 name: cnb-ci
-description: Build and publish production Docker images with CNB. Use when creating or fixing .cnb.yml, publishing to registry.cn-shanghai.aliyuncs.com/heilaowang, or validating a production image without building it on the developer machine.
+description: Build and publish production Docker images with CNB, and trigger/monitor any CNB pipeline (e.g. Android APK artifact builds) via its build API. Use when creating or fixing .cnb.yml, publishing to registry.cn-shanghai.aliyuncs.com/heilaowang, validating a production image without building it on the developer machine, or triggering/checking CNB builds from the CLI.
 ---
 
 # CNB CI
 
-Production build path: `git push -> CNB -> docker build/buildx -> registry -> server pull`.
+Production build path: `git push -> CNB -> docker build/buildx -> registry -> server pull`. The Build API below applies to any CNB pipeline, not just Docker images — e.g. an Android repo whose `.cnb.yml` packages an APK and uploads it to R2 / pipeline attachments. Such setups usually live in a separate cloud-build mirror repo (the source repo has no `.cnb.yml`); sync the source branch to the mirror first, then trigger by event name.
 
 ## Rules
 
@@ -18,12 +18,12 @@ Production build path: `git push -> CNB -> docker build/buildx -> registry -> se
 
 ## Build API (trigger, monitor, read logs)
 
-All calls go to `https://api.cnb.cool` with `Authorization: Bearer <CNB_TOKEN>` and `Accept: application/vnd.cnb.api+json`.
+All calls go to `https://api.cnb.cool` with `Authorization: Bearer <CNB_TOKEN>`; `Accept: application/vnd.cnb.api+json` is optional — plain JSON responses work without it.
 
-Token sources, in order: `CNB_TOKEN` env var → project `.cnb/.env` → `~/.config/cnb/env` → `~/.cnb/.env` → `git credential fill` for host `cnb.cool` (username `cnb`, token as password). Minimal CI tokens cover repo read/write, build start and build status; they usually lack `repo-cnb-history:r`.
+Token sources, in order: `CNB_TOKEN` env var → project `.cnb/.env` → `~/.config/cnb/env` → `~/.cnb/.env` → `git credential fill` for host `cnb.cool` (username `cnb`, token as password). `~/.config/cnb/env` holds an `export CNB_TOKEN=...` line sourced by the shell profile, so the env var is usually just that file already loaded; check with `ls ~/.config/cnb/env` and `echo ${CNB_TOKEN:+set}` before hunting further. Minimal CI tokens cover repo read/write, build start and build status; they usually lack `repo-cnb-history:r`.
 
-- Trigger: `POST /{org}/{repo}/-/build/start` with body `{"branch":"main","event":"<event name>","sync":"false","title":"..."}` → returns `{sn, buildLogUrl, success}`.
-- Status: `GET /{org}/{repo}/-/build/status/{sn}` → `.status` (`pending|start|success|error|cancel`) and `.pipelinesStatus.{sn}-001` with `stages[]` (`id` such as `prepare`, `stage-0`, plus per-stage status and duration).
+- Trigger: `POST /{org}/{repo}/-/build/start` with body `{"branch":"main","event":"<event name>","sync":"false","title":"..."}` → returns `{sn, buildLogUrl, success, message}` where `message` is `"cnb received, but didn't finish build yet"` on accept — trigger is async, poll status for the outcome.
+- Status: `GET /{org}/{repo}/-/build/status/{sn}` → `.status` (`pending|start|success|error|cancel`) and `.pipelinesStatus.{sn}-001` with `stages[]` (`id` such as `prepare`, `stage-0`, plus per-stage status `pending|start|success|error|skipped` and duration in ms).
 - Stage log: `GET /{org}/{repo}/-/build/logs/stage/{sn}/{sn}-001/{stageId}` — note the `stage/` path segment; `{sn}-001` is the pipeline id from the status response and `{stageId}` comes from its stages list. Paginate with `X-Page-Number` / `X-Page-Size` request headers. Response is `{"content": ["<line>", ...], "duration": <ms>}`; lines contain ANSI color codes — strip `\x1b[…m` before parsing.
 - Pitfall: the documented list endpoint `GET /{org}/{repo}/-/build/logs?buildId=...` requires token scope `repo-cnb-history:r` and returns 403 for minimal CI tokens; the `/stage/` variant above works with plain repo read access. Path-style `/{repo}/-/build/logs/{sn}` does not exist (404).
 - Web UI log page: `https://cnb.cool/{org}/{repo}/-/build/logs/{sn}` — needs a browser login session, tokens do not work there.

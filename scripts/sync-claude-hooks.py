@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-"""Install wxh-dev-standard Claude Code hooks, statusline and permissions baseline into ~/.claude.
+"""Install wxh-dev-standard Claude Code hooks, statusline, permissions and skillOverrides baseline into ~/.claude.
 
 Installs the repo-owned hook scripts to ~/.claude/hooks/ and the statusline
 script to ~/.claude/statusline.sh, registers the hooks in
 ~/.claude/settings.json, and merges the wxh-owned permissions baseline
-(defaultMode + dangerous-command ask list) and the wxh-owned statusLine
-block into the same file. Registration
+(defaultMode + dangerous-command ask list), the wxh-owned skillOverrides
+baseline (low-frequency vendor skills off/name-only) and the wxh-owned
+statusLine block into the same file. Registration
 is a safe merge: env, model, secrets and every other user-owned key are
 never touched; only the wxh-owned PreToolUse entries, the wxh-owned
 permissions keys and a statusLine block pointing at the wxh script are
@@ -37,6 +38,32 @@ STATUSLINE_REFRESH_INTERVAL = 120
 # hook script name -> PreToolUse matcher
 HOOK_MANIFEST = {
     "gate-commit-trellis.py": "Bash",
+}
+
+# wxh-owned skillOverrides baseline merged into settings.json.
+# Vendor skills that crowd the skill-listing context budget (1% of the
+# context window by default) without being in daily use. "off" removes them
+# from the model-visible listing entirely (directories and manual dispatch
+# stay on disk); "name-only" keeps the name listed without the description.
+# User-set overrides for other skills are never touched.
+SKILL_OVERRIDES_BASELINE = {
+    # Cloudflare vendor snapshot (skills-vendor/cloudflare, 14 skills)
+    "agents-sdk": "off",
+    "cloudflare": "off",
+    "cloudflare-email-service": "off",
+    "cloudflare-one": "off",
+    "cloudflare-one-migrations": "off",
+    "durable-objects": "off",
+    "nextjs-on-cloudflare": "off",
+    "sandbox-migrate-to-next": "off",
+    "sandbox-next": "off",
+    "sandbox-stable": "off",
+    "turnstile-spin": "off",
+    "web-perf": "off",
+    "workers-best-practices": "off",
+    "wrangler": "off",
+    # app-shell-ui: low-frequency, keep manually invocable via /
+    "app-shell-ui": "name-only",
 }
 
 # wxh-owned permissions baseline merged into settings.json.
@@ -199,6 +226,29 @@ def sync_permissions(settings: dict) -> None:
                 print(f"[settings] OK permissions.{key}")
 
 
+def sync_skill_overrides(settings: dict) -> None:
+    """Merge the wxh-owned skillOverrides baseline into settings.
+
+    Only the baseline-listed skill names are written; overrides the user set
+    for other skills are preserved. Re-running restores baseline entries
+    that were removed.
+    """
+    overrides = settings.get("skillOverrides")
+    if not isinstance(overrides, dict):
+        overrides = {}
+        settings["skillOverrides"] = overrides
+
+    changed = 0
+    for name, mode in SKILL_OVERRIDES_BASELINE.items():
+        if overrides.get(name) != mode:
+            overrides[name] = mode
+            changed += 1
+    if changed:
+        print(f"[settings] UPDATED skillOverrides ({changed} baseline entries)")
+    else:
+        print("[settings] OK skillOverrides")
+
+
 def statusline_baseline() -> dict:
     return {
         "type": "command",
@@ -256,6 +306,7 @@ def main() -> int:
     for name in HOOK_MANIFEST:
         register_settings(name, settings)
     sync_permissions(settings)
+    sync_skill_overrides(settings)
     sync_statusline(settings)
     if json.dumps(settings, sort_keys=True, ensure_ascii=False) != before:
         changed = True

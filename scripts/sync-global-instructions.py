@@ -10,6 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 TARGETS = {
     "codex": (ROOT / "AGENTS.md", Path.home() / ".codex" / "AGENTS.md"),
     "claude": (ROOT / "CLAUDE.md", Path.home() / ".claude" / "CLAUDE.md"),
+    "pi": (ROOT / "AGENTS.md", Path.home() / ".pi" / "agent" / "AGENTS.md"),
 }
 
 
@@ -42,6 +43,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Sync wxh-dev-standard global instruction files.")
     parser.add_argument("--codex", action="store_true")
     parser.add_argument("--claude", action="store_true")
+    parser.add_argument("--pi", action="store_true")
     parser.add_argument("--all", action="store_true")
     args = parser.parse_args()
 
@@ -50,6 +52,8 @@ def main() -> int:
         selected.append("codex")
     if args.all or args.claude:
         selected.append("claude")
+    if args.all or args.pi:
+        selected.append("pi")
     if not selected:
         selected.append("codex")
 

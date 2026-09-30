@@ -1,16 +1,16 @@
 # 安装、迁移与更新
 
-`wxh-dev-standard` 是跨项目全局 AI Coding 配置库。Codex、Claude Code 与 ZCode 是三套平行的独立体系：Codex 用 `AGENTS.md` + `skills/` + Codex MCP，Claude Code 用 `CLAUDE.md` + `skills/` + `hooks/` + Claude MCP，ZCode 用 `~/.zcode/AGENTS.md` + `skills/` + `hooks/` + ZCode MCP（skills 与 Codex 共用 `~/.agents/skills`），互不引用、不做兼容层；三者分别安装、分别更新，不要求同时存在。
+`wxh-dev-standard` 是跨项目全局 AI Coding 配置库。Codex、Claude Code、ZCode 与 PI-Desktop 是四套平行的独立体系：Codex 用 `AGENTS.md` + `skills/` + Codex MCP，Claude Code 用 `CLAUDE.md` + `skills/` + `hooks/` + Claude MCP，ZCode 用 `~/.zcode/AGENTS.md` + `skills/` + `hooks/` + ZCode MCP，PI-Desktop 用 `AGENTS.md`（同步到 `~/.pi/agent/AGENTS.md`）+ `skills/`（skills 与 Codex、ZCode 共用 `~/.agents/skills`，MCP 走应用设置面板、hooks/权限基线不适用），互不引用、不做兼容层；四者分别安装、分别更新，不要求同时存在。
 
 标准源：
 
 ```text
-AGENTS.md   -> Codex 全局提示词 -> ~/.codex/AGENTS.md
+AGENTS.md   -> Codex 全局提示词 -> ~/.codex/AGENTS.md；PI-Desktop 全局提示词 -> ~/.pi/agent/AGENTS.md（与 Codex 同一份标准源）
 CLAUDE.md   -> Claude Code 全局提示词 -> ~/.claude/CLAUDE.md
 zcode/AGENTS.md -> ZCode 全局提示词 -> ~/.zcode/AGENTS.md（与 CLAUDE.md 同一套基础约束，仅保留 ZCode 真实差异）
-skills/     -> 各端全局 Skill 目录（Codex 与 ZCode 共用 ~/.agents/skills）
+skills/     -> 各端全局 Skill 目录（Codex、ZCode 与 PI-Desktop 共用 ~/.agents/skills；Claude Code 用 ~/.claude/skills）
 skills-vendor/ -> 第三方 Skills 快照（cloudflare / mattpocock / app-shell-ui），与 skills/ 一并由 sync-skills.py 链接分发，更新方法见 skills-vendor/SOURCES.md
-mcp/        -> 各端 MCP 基线，只合并，不整份覆盖
+mcp/        -> 各端 MCP 基线，只合并，不整份覆盖（PI-Desktop 的 MCP 走应用设置面板，手动添加）
 ```
 
 业务项目自己的需求、架构、数据库、项目级 `AGENTS.md` / `CLAUDE.md`、Docker/CNB 文件和 CodeGraph/Trellis 项目状态继续留在项目中。
@@ -225,6 +225,56 @@ python3 "$HOME/.wxh-dev-standard/scripts/validate-skills.py"
 git -C "$HOME/.wxh-dev-standard" pull --ff-only
 python3 "$HOME/.wxh-dev-standard/scripts/sync-skills.py" --codex
 python3 "$HOME/.wxh-dev-standard/scripts/sync-zcode.py"
+python3 "$HOME/.wxh-dev-standard/scripts/validate-skills.py"
+```
+
+## PI-Desktop
+
+### PI-Desktop 手工安装
+
+Linux / macOS：
+
+```bash
+if [ -d "$HOME/.wxh-dev-standard/.git" ]; then
+  git -C "$HOME/.wxh-dev-standard" pull --ff-only
+else
+  git clone https://github.com/wxh6667/wxh-dev-standard.git "$HOME/.wxh-dev-standard"
+fi
+
+python3 "$HOME/.wxh-dev-standard/scripts/sync-skills.py" --codex
+python3 "$HOME/.wxh-dev-standard/scripts/sync-global-instructions.py" --pi
+python3 "$HOME/.wxh-dev-standard/scripts/validate-skills.py"
+```
+
+Windows PowerShell：
+
+```powershell
+$Repo = "$HOME\.wxh-dev-standard"
+if (Test-Path "$Repo\.git") {
+    git -C $Repo pull --ff-only
+} else {
+    git clone https://github.com/wxh6667/wxh-dev-standard.git $Repo
+}
+python "$Repo\scripts\sync-skills.py" --codex
+python "$Repo\scripts\sync-global-instructions.py" --pi
+python "$Repo\scripts\validate-skills.py"
+```
+
+说明：
+
+1. PI-Desktop 的全局 Skill 目录就是 `~/.agents/skills`，与 Codex/ZCode 共用，因此 Skill 分发直接跑 `sync-skills.py --codex`；PI 项目级 Skill 目录是 `<project-root>/.agents/skills`。
+2. 全局提示词复用仓库根目录 `AGENTS.md`（与 Codex 同一份标准源），同步到 `~/.pi/agent/AGENTS.md`；PI 还会分层读取项目根的 `AGENTS.md` / `CLAUDE.md`，与 `templates/project/AGENTS.md.example` 天然兼容。
+3. MCP：PI 把 MCP 配置保存在应用私有存储并由设置面板管理，没有可安全合并的配置文件；按 `mcp/README.md` 的基线在 PI 设置里手动添加。
+4. `hooks/` 与 Claude permissions 基线不适用于 PI——PI 自带权限确认体系，按"按功能消解工具重叠"原则不搬运。
+
+### PI-Desktop 更新
+
+手工更新：
+
+```bash
+git -C "$HOME/.wxh-dev-standard" pull --ff-only
+python3 "$HOME/.wxh-dev-standard/scripts/sync-skills.py" --codex
+python3 "$HOME/.wxh-dev-standard/scripts/sync-global-instructions.py" --pi
 python3 "$HOME/.wxh-dev-standard/scripts/validate-skills.py"
 ```
 

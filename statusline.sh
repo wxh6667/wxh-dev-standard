@@ -1,9 +1,12 @@
 #!/bin/bash
-# Claude Code 状态栏:左=目录 | 模型 ⎇ 分支,右=context 用量进度条(绿 <50% / 黄 50-79% / 红 ≥80%)
+# Claude Code 状态栏:左=目录 | 模型·思考强度 ⎇ 分支,右=context 用量进度条(绿 <50% / 黄 50-79% / 红 ≥80%)
 # 右对齐依据:Claude Code 运行脚本前会把终端宽度写入 COLUMNS(官方文档说明)
 input=$(cat)
 
 model=$(echo "$input" | jq -r '.model.display_name // empty')
+# 思考强度(/effort 实时会话值):拼在模型名后,如 Opus·xhigh;模型不支持时官方字段缺席,不显示
+effort=$(echo "$input" | jq -r '.effort.level // empty')
+[ -n "$effort" ] && model="$model·$effort"
 dir=$(echo "$input" | jq -r '.workspace.current_dir // .current_dir // empty')
 base=$(basename "$dir" 2>/dev/null)
 branch=$(cd "$dir" 2>/dev/null && git --no-optional-locks branch --show-current 2>/dev/null)

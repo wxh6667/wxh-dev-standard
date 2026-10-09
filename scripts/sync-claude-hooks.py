@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import shutil
 from datetime import datetime
 from pathlib import Path
@@ -67,11 +68,12 @@ SKILL_OVERRIDES_BASELINE = {
 }
 
 # wxh-owned permissions baseline merged into settings.json.
-# defaultMode auto-approves file edits; the `ask` list forces explicit
-# confirmation for destructive commands. User-added ask entries and other
-# permission keys (allow/deny/...) are never touched.
+# defaultMode "auto" hands per-action permission decisions to the safety
+# classifier (the model decides), except the `ask` list, which always forces
+# explicit confirmation for destructive commands. User-added ask entries and
+# other permission keys (allow/deny/...) are never touched.
 PERMISSIONS_BASELINE = {
-    "defaultMode": "acceptEdits",
+    "defaultMode": "auto",
     "ask": [
         "Bash(rm:*)",
         "Bash(sudo rm:*)",
@@ -92,8 +94,25 @@ PERMISSIONS_BASELINE = {
 }
 
 
+def python_interpreter() -> str:
+    """Interpreter name to put in hook commands.
+
+    Windows "python3" is often an App Execution Alias stub (Microsoft Store)
+    that exits without running the script, so prefer "python" there; POSIX
+    systems conventionally provide "python3". Override with WXH_HOOK_PYTHON.
+    """
+    override = os.environ.get("WXH_HOOK_PYTHON")
+    if override:
+        return override
+    return "python" if os.name == "nt" else "python3"
+
+
 def command_for(script_name: str) -> str:
-    return f"python3 {CLAUDE_DIR / 'hooks' / script_name}"
+    # Forward slashes + quoting: the hook command is parsed by a shell that
+    # strips unescaped backslashes, so C:\Users\... would corrupt to
+    # UsersAdministrator... and fail to open the script.
+    script = (CLAUDE_DIR / "hooks" / script_name).as_posix()
+    return f'{python_interpreter()} "{script}"'
 
 
 def wanted_group(script_name: str) -> dict:
@@ -154,13 +173,14 @@ def sync_statusline_script() -> None:
 
 
 def entry_matches(existing: object, script_name: str) -> bool:
-    """Match a wxh hook entry by script basename, tolerating path-form differences."""
+    """Match a wxh hook entry by script basename, tolerating path/quoting differences."""
     if not isinstance(existing, dict):
         return False
     command = existing.get("command")
     if not isinstance(command, str):
         return False
-    return Path(command).name == script_name
+    normalized = command.replace("\\", "/")
+    return normalized.endswith(script_name) or f"/{script_name}" in normalized
 
 
 def register_settings(script_name: str, settings: dict) -> None:
@@ -250,20 +270,20 @@ def sync_skill_overrides(settings: dict) -> None:
 
 
 def statusline_baseline() -> dict:
+    # as_posix + quotes: same shell backslash-stripping issue as hook commands.
+    script = (CLAUDE_DIR / "statusline.sh").as_posix()
     return {
         "type": "command",
-        "command": f"bash {CLAUDE_DIR / 'statusline.sh'}",
+        "command": f'bash "{script}"',
         "refreshInterval": STATUSLINE_REFRESH_INTERVAL,
     }
 
 
 def is_wxh_statusline(entry: object) -> bool:
     """True if the statusLine block points at the wxh-installed script."""
-    return (
-        isinstance(entry, dict)
-        and isinstance(entry.get("command"), str)
-        and Path(entry["command"]).name == "statusline.sh"
-    )
+    if not isinstance(entry, dict) or not isinstance(entry.get("command"), str):
+        return False
+    return entry["command"].replace("\\", "/").rstrip('"').endswith("statusline.sh")
 
 
 def sync_statusline(settings: dict) -> None:

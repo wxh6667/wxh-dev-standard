@@ -8,8 +8,8 @@ disable-model-invocation: true
 
 Consider that information is a directed acyclic graph, and that pieces of information can depend on other pieces of information. Make sure that the order of the sections and their contents respects these dependencies.
 
-Confirm the sections with the user.
+Preserve the agreed structure; ask only when restructuring changes the article's intended argument.
 
 2. For each section:
 
-2a. Rewrite the section to improve clarity, coherence, and flow. Use maximum 240 characters per paragraph.
+2a. Rewrite the section to improve clarity, coherence, and flow. Use readable paragraphs in the user's language, preserving necessary reasoning rather than enforcing an arbitrary character limit.

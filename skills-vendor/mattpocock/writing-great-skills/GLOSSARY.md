@@ -18,19 +18,19 @@ How a skill is reached — and the two loads you pay for the choice.
 
 ### Model-Invoked
 
-A skill that keeps its **description** field, so the agent can see it and fire it autonomously — and the human can still type its name, so model-invocation always _includes_ user reach. There is no model-only state: a description only ever _adds_ agent discovery, never removes the human's. Pays a permanent **context load** on every turn in exchange for that discoverability. Reachable by other skills, because the description that makes it agent-discoverable makes it invocable. A model-invoked skill whose content is all **reference** is also one home for shared reference: another skill can invoke it, so reference needed by several skills lives in one place. Pick model-invocation only when the agent must reach the skill on its own; if it never fires except by hand, drop the description and pay no context load.
+A skill the host allows the model to select when its description matches the task. Listing, manual visibility and invocation controls are host-specific; the presence of a description alone does not determine the policy.
 
 _Avoid_: ability, tool, capability
 
 ### User-Invoked
 
-A skill with its **description** stripped — invisible to the agent and reachable only by the human typing its name (user-_only_, where **model-invoked** is user-_and-agent_). Trades agent-discoverability for zero **context load**. Because it has no description, nothing but the human can reach it: no other skill can fire it.
+A skill selected explicitly by the user under the host's invocation policy. Keep the required description and configure the host's explicit-invocation setting; do not delete metadata or assume zero context cost across hosts.
 
 _Avoid_: procedure, workflow, command
 
 ### Description
 
-The skill's machine-readable trigger, and the one **context pointer** a **model-invoked** skill is forced to keep loaded at all times. Its mere presence _is_ the invocation axis: keep it and the skill is model-invoked (and reachable by other skills); delete it and the skill is **user-invoked**, reachable only by the human. The source of a model-invoked skill's **context load**.
+Required discovery metadata describing the skill and its actual trigger conditions. The host determines whether it is listed, truncated or hidden; configure invocation separately.
 
 _Avoid_: frontmatter, summary
 
@@ -42,7 +42,7 @@ _Avoid_: link, reference, import
 
 ### Context Load
 
-The cost a **model-invoked** skill imposes on the agent's context window — its **description**, always loaded, spending both tokens and attention. What **user-invoked** skills escape by having no description, and the brake on splitting into more model-invoked skills.
+The tokens and attention spent on material the host loads. Measure the actual listing and active bodies rather than assuming every description is always present or every explicit skill has zero cost.
 
 _Avoid_: token cost, context bloat
 
@@ -54,7 +54,7 @@ _Avoid_: human index, burden, overhead
 
 ### Router Skill
 
-A **user-invoked** skill whose job is to point at your other user-invoked skills — naming each and when to reach for it — so the human has one skill to remember instead of many. It can only hint, never fire them: user-invoked skills have no **description**, so nothing but the human can reach them. The cure for **cognitive load** when user-invoked skills multiply.
+A skill that helps choose among existing workflows. Whether it can invoke another skill depends on host policy; ordinary file references do not require automatic invocation permission.
 
 _Avoid_: dispatcher, menu, registry, index, router procedure
 
@@ -160,7 +160,7 @@ _Avoid_: premature closure, the rush, rushing, shortcutting
 
 ### Negation
 
-_Failure mode._ Steering by prohibition — telling the agent what _not_ to do — which drags the forbidden behaviour into context and makes it _more_ available, not less. _Don't think of an elephant_, and the elephant is all there is; _never write verbose comments_, and verbosity is the pattern the agent has just read. The negation is a weak modifier the strongly-activated concept overruns, so the ban half-reads as an instruction to do the thing. Its **leading word** is the _elephant_: whatever a prohibition names into the frame. Cure: prompt the **positive** — describe the target behaviour ("write one-line comments") so the banned one is never spoken. A prohibition earns its place only as a hard guardrail on a behaviour you cannot phrase positively; even then, pair it with the positive target so attention lands on what to do.
+A prohibition can clarify a necessary boundary. Prefer direct target actions where sufficient, retain explicit high-risk prohibitions and test actual behavior; negation does not universally imply worse model performance.
 
 _Avoid_: ironic rebound, don't-prompting, the pink elephant
 

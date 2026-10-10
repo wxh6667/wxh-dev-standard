@@ -20,7 +20,7 @@ Work out every manual step the human must take and every value that gets capture
 - For setup: `.env`, `.env.example`, `.env.*`, `README`, `docker-compose*`, framework config, and `.github/workflows/*` (every `secrets.*` / `vars.*` reference is a value the wizard must produce).
 - For a migration or transition: the current state, the target state, and the irreversible actions between them.
 
-Then show the user the ordered list of stages and the values each produces, and confirm: they may add, drop, or reorder.
+Show the ordered stages and destinations. Reuse already approved decisions; confirm only unresolved choices or writes outside the existing authorization.
 
 **Done when:** every stage is named in order, and for each captured value you know (a) where the human gets it, (b) where it's written (`.env`, a GitHub secret, both, or nowhere; some stages are pure actions), and (c) whether it's secret (hidden entry) or public.
 
@@ -41,4 +41,4 @@ Hold the bar the template sets: open the URL before asking for its value, use `a
 - `bash -n <script>`; run `shellcheck` if available.
 - `chmod +x <script>`.
 - Don't run it end-to-end yourself: it opens browsers and blocks on human input. Trace it statically instead: every value from step 1 is captured and lands where step 1 said, and every `set_secret` name exactly matches a `secrets.*` reference in CI.
-- Tell the user how to run it. If it's a repeatable setup path, commit it and link it from the README so the next person runs the script instead of asking an AI.
+- Tell the user how to run it. For a repeatable setup path, link it from the existing documentation and commit only when authorized. Report skipped or failed stages as incomplete, not successful setup.

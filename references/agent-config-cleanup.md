@@ -1,6 +1,6 @@
 # AI Constraint Cleanup Reference
 
-Use with `skills/agent-config-cleanup/SKILL.md` when a workstation/server has accumulated overlapping agent rules and Skills.
+Use this reference when a workstation/server has accumulated overlapping agent rules and Skills; it does not require a separate cleanup Skill.
 
 ## Linux/macOS discovery
 

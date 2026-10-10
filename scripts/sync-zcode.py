@@ -24,6 +24,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import shlex
 import shutil
 from datetime import datetime
 from pathlib import Path
@@ -82,6 +83,8 @@ def sync_agents() -> None:
         return
     if AGENTS_TARGET.exists() or AGENTS_TARGET.is_symlink():
         backup(AGENTS_TARGET)
+        if AGENTS_TARGET.is_symlink():
+            AGENTS_TARGET.unlink()
     shutil.copy2(AGENTS_SOURCE, AGENTS_TARGET)
     print(f"[agents] SYNC {AGENTS_SOURCE} -> {AGENTS_TARGET}")
 
@@ -117,6 +120,8 @@ def install_hook() -> None:
         return
     if HOOK_TARGET.exists() or HOOK_TARGET.is_symlink():
         backup(HOOK_TARGET)
+        if HOOK_TARGET.is_symlink():
+            HOOK_TARGET.unlink()
     HOOK_TARGET.write_text(adapted, encoding="utf-8")
     HOOK_TARGET.chmod(0o755)
     print(f"[hook] SYNC {HOOK_SOURCE} -> {HOOK_TARGET} (deny via exit code 2)")
@@ -128,11 +133,25 @@ def wanted_hook_group() -> dict:
         "hooks": [
             {
                 "type": "command",
-                "command": f"python3 {HOOK_TARGET}",
+                "command": shlex.join(["python3", str(HOOK_TARGET)]),
                 "timeout": HOOK_TIMEOUT_SECONDS,
             }
         ],
     }
+
+
+def is_wxh_entry(entry: object) -> bool:
+    if not isinstance(entry, dict) or not isinstance(entry.get("command"), str):
+        return False
+    try:
+        parts = shlex.split(entry["command"])
+    except ValueError:
+        return False
+    return (
+        len(parts) == 2
+        and Path(parts[0]).name in {"python", "python3"}
+        and Path(parts[1]) in {HOOK_TARGET, HOOK_SOURCE}
+    )
 
 
 def is_wxh_group(item: object) -> bool:
@@ -141,12 +160,7 @@ def is_wxh_group(item: object) -> bool:
     hooks = item.get("hooks")
     if not isinstance(hooks, list):
         return False
-    return any(
-        isinstance(h, dict)
-        and isinstance(h.get("command"), str)
-        and Path(h["command"]).name == HOOK_TARGET.name
-        for h in hooks
-    )
+    return any(is_wxh_entry(h) for h in hooks)
 
 
 def clean_env(env: dict) -> dict:
@@ -189,11 +203,11 @@ def merge_hooks(config: dict) -> None:
     hooks = config.setdefault("hooks", {})
     if not isinstance(hooks, dict):
         raise SystemExit("config hooks is not a JSON object; refusing to edit")
-    if hooks.get("enabled") is True:
-        print("[hooks] OK enabled: true")
-    else:
+    if "enabled" not in hooks:
         hooks["enabled"] = True
         print("[hooks] SET enabled: true (config-file hooks are disabled by default)")
+    else:
+        print(f"[hooks] KEEP enabled: {hooks['enabled']}")
     events = hooks.setdefault("events", {})
     if not isinstance(events, dict):
         raise SystemExit("config hooks.events is not a JSON object; refusing to edit")
@@ -206,7 +220,11 @@ def merge_hooks(config: dict) -> None:
             if item == group:
                 print(f"[hooks] OK PreToolUse group for {HOOK_TARGET.name}")
             else:
-                entries[idx] = group
+                # Refresh our entry only; a matcher group can contain user hooks.
+                item["hooks"] = [
+                    group["hooks"][0] if is_wxh_entry(h) else h
+                    for h in item["hooks"]
+                ]
                 print(f"[hooks] UPDATED PreToolUse group for {HOOK_TARGET.name}")
             return
     entries.append(group)
@@ -233,6 +251,8 @@ def main() -> int:
     merge_mcp(config)
     merge_hooks(config)
     if json.dumps(config, sort_keys=True, ensure_ascii=False) != before or not CONFIG_PATH.exists():
+        if CONFIG_PATH.is_symlink():
+            raise SystemExit(f"{CONFIG_PATH} is a symlink; refusing to write through shared user configuration")
         if CONFIG_PATH.exists():
             backup(CONFIG_PATH)
         CONFIG_PATH.write_text(

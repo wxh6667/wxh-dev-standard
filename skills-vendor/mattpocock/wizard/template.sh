@@ -131,50 +131,70 @@ write_env() {
   local key="$1" value="$2" tmp
   touch "$ENV_FILE"
   tmp=$(mktemp)
-  grep -vE "^${key}=" "$ENV_FILE" > "$tmp" || true
+  if grep -vE "^${key}=" "$ENV_FILE" > "$tmp"; then
+    :
+  else
+    local status=$?
+    if (( status != 1 )); then
+      rm -f "$tmp"
+      warn "could not read $ENV_FILE; no value written"
+      return "$status"
+    fi
+  fi
   printf '%s=%s\n' "$key" "$value" >> "$tmp"
   mv "$tmp" "$ENV_FILE"
   WRITTEN_ENV+=("$key")
   printf '  %s✓ wrote%s %s → %s\n' "$GREEN" "$RESET" "$key" "$ENV_FILE"
 }
 
-# set_secret NAME VALUE sets a GitHub Actions repo secret via gh. Falls back
-# to a warning (and records it) if gh is unavailable or unauthenticated.
+# GitHub writes report missing CLI, authentication and write failures separately.
 set_secret() {
-  local name="$1" value="$2"
-  if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
-    if printf '%s' "$value" | gh secret set "$name" >/dev/null 2>&1; then
-      WRITTEN_SECRET+=("$name")
-      printf '  %s✓ set%s GitHub secret %s\n' "$GREEN" "$RESET" "$name"
-      return
-    fi
+  local name="$1" value="$2" reason
+  if ! command -v gh >/dev/null 2>&1; then
+    reason="gh unavailable"
+  elif ! gh auth status >/dev/null; then
+    reason="gh authentication failed"
+  elif printf '%s' "$value" | gh secret set "$name" >/dev/null; then
+    WRITTEN_SECRET+=("$name")
+    printf '  %s✓ set%s GitHub secret %s\n' "$GREEN" "$RESET" "$name"
+    return 0
+  else
+    reason="secret write failed"
   fi
-  SKIPPED+=("GitHub secret $name (set it manually: gh secret set $name)")
-  warn "skipped GitHub secret $name: gh not ready; set it later"
+  SKIPPED+=("GitHub secret $name ($reason; set manually: gh secret set $name)")
+  warn "skipped GitHub secret $name: $reason"
 }
 
-# set_var NAME VALUE sets a GitHub Actions repo variable (non-secret).
 set_var() {
-  local name="$1" value="$2"
-  if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
-    if gh variable set "$name" --body "$value" >/dev/null 2>&1; then
-      printf '  %s✓ set%s GitHub variable %s\n' "$GREEN" "$RESET" "$name"
-      return
-    fi
+  local name="$1" value="$2" reason
+  if ! command -v gh >/dev/null 2>&1; then
+    reason="gh unavailable"
+  elif ! gh auth status >/dev/null; then
+    reason="gh authentication failed"
+  elif gh variable set "$name" --body "$value" >/dev/null; then
+    printf '  %s✓ set%s GitHub variable %s\n' "$GREEN" "$RESET" "$name"
+    return 0
+  else
+    reason="variable write failed"
   fi
-  SKIPPED+=("GitHub variable $name")
-  warn "skipped GitHub variable $name, gh not ready; set it later"
+  SKIPPED+=("GitHub variable $name ($reason)")
+  warn "skipped GitHub variable $name: $reason"
 }
 
 # finish clears, then shows a closing summary of everything configured.
 finish() {
   _clear
-  printf '\n%s%s  ✓ Setup complete%s\n' "$BOLD" "$GREEN" "$RESET"
+  if (( ${#SKIPPED[@]} )); then
+    printf '\n%s%s  Setup incomplete%s\n' "$BOLD" "$YELLOW" "$RESET"
+  else
+    printf '\n%s%s  ✓ Setup complete%s\n' "$BOLD" "$GREEN" "$RESET"
+  fi
   (( ${#WRITTEN_ENV[@]} ))    && note "wrote ${#WRITTEN_ENV[@]} value(s) to $ENV_FILE: ${WRITTEN_ENV[*]}"
   (( ${#WRITTEN_SECRET[@]} )) && note "set ${#WRITTEN_SECRET[@]} GitHub secret(s): ${WRITTEN_SECRET[*]}"
   if (( ${#SKIPPED[@]} )); then
     printf '\n'; warn "still to do by hand:"
     for s in "${SKIPPED[@]}"; do note "  - $s"; done
+    return 1
   fi
   printf '\n'
 }

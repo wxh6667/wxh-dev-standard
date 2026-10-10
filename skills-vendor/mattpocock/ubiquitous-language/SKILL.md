@@ -1,6 +1,6 @@
 ---
 name: ubiquitous-language
-description: Extract a DDD-style ubiquitous language glossary from the current conversation, flagging ambiguities and proposing canonical terms. Saves to UBIQUITOUS_LANGUAGE.md. Use when user wants to define domain terms, build a glossary, harden terminology, create a ubiquitous language, or mentions "domain model" or "DDD".
+description: Extract a DDD-style ubiquitous language glossary from the current conversation, flagging ambiguities and proposing canonical terms. Updates the project's existing glossary; defaults to CONTEXT.md when none exists. Use when user wants to define domain terms, build a glossary, harden terminology, create a ubiquitous language, or mentions "domain model" or "DDD".
 disable-model-invocation: true
 ---
 
@@ -16,12 +16,12 @@ Extract and formalize domain terminology from the current conversation into a co
    - Different words used for the same concept (synonyms)
    - Vague or overloaded terms
 3. **Propose a canonical glossary** with opinionated term choices
-4. **Write to `UBIQUITOUS_LANGUAGE.md`** in the working directory using the format below
+4. **Update the existing authoritative glossary** using its format. If none exists, create CONTEXT.md with the format below; do not create a duplicate glossary
 5. **Output a summary** inline in the conversation
 
 ## Output Format
 
-Write a `UBIQUITOUS_LANGUAGE.md` file with this structure:
+For a new glossary, use this structure; preserve the format of an existing file:
 
 ```md
 # Ubiquitous Language
@@ -86,8 +86,8 @@ Write a `UBIQUITOUS_LANGUAGE.md` file with this structure:
 
 When invoked again in the same conversation:
 
-1. Read the existing `UBIQUITOUS_LANGUAGE.md`
+1. Read the existing authoritative domain glossary
 2. Incorporate any new terms from subsequent discussion
 3. Update definitions if understanding has evolved
 4. Re-flag any new ambiguities
-5. Rewrite the example dialogue to incorporate new terms
+5. Update a useful existing example if the changed terms affect it; preserve unrelated content

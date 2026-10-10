@@ -1,6 +1,6 @@
 # 安装、迁移与更新
 
-`wxh-dev-standard` 是跨项目全局 AI Coding 配置库。Codex、Claude Code、ZCode 与 PI-Desktop 是四套平行的独立体系：Codex 用 `AGENTS.md` + `skills/` + Codex MCP，Claude Code 用 `CLAUDE.md` + `skills/` + `hooks/` + Claude MCP，ZCode 用 `~/.zcode/AGENTS.md` + `skills/` + `hooks/` + ZCode MCP，PI-Desktop 用 `AGENTS.md`（同步到 `~/.pi/agent/AGENTS.md`）+ `skills/`（skills 与 Codex、ZCode 共用 `~/.agents/skills`，MCP 走应用设置面板、hooks/权限基线不适用），互不引用、不做兼容层；四者分别安装、分别更新，不要求同时存在。
+`wxh-dev-standard` 是跨项目全局 AI Coding 配置库。Codex、Claude Code、ZCode 与 PI-Desktop 是四套平行的独立体系：Codex 用 `AGENTS.md` + `skills/` + Codex MCP，Claude Code 用 `CLAUDE.md` + `skills/` + `hooks/` + Claude MCP，ZCode 用 `~/.zcode/AGENTS.md` + `skills/` + `hooks/` + ZCode MCP，PI-Desktop 用 `AGENTS.md`（同步到 `~/.pi/agent/AGENTS.md`）+ `skills/`（skills 与 Codex、ZCode 共用 `~/.agents/skills`，MCP 走应用设置面板、hooks/权限基线不适用），互不引用、不做兼容层；四者分别安装指令和配置，不要求同时存在；Skill 入口链接同一仓库源码，源码更新会影响已经连接的各端。安装路径针对本库对应的 PI-Desktop，不推广到其他同名 PI 工具。
 
 标准源：
 
@@ -144,7 +144,7 @@ python "$Repo\scripts\sync-claude-hooks.py"
 python "$Repo\scripts\validate-skills.py"
 ```
 
-`sync-claude-hooks.py` 把仓库 `hooks/` 下的脚本安装到 `~/.claude/hooks/`、仓库 `statusline.sh` 安装到 `~/.claude/statusline.sh`，并向 `~/.claude/settings.json` 安全合并三类 wxh 拥有的条目（带时间戳备份；`env`、模型、密钥等用户自有字段绝不改动）：一是 Trellis commit 门禁的 PreToolUse 条目（Trellis 项目没有活动任务时拦截 `git commit`，豁免关键字 `no-trellis`）；二是 permissions 基线——`defaultMode: "acceptEdits"` 自动放行文件编辑，外加破坏性命令（`rm`、`git push --force`、`docker rm`、`kubectl delete`、`npm publish` 等）的 `ask` 确认列表；三是 statusLine 状态栏——左下显示 `目录 | 模型 ⎇ 分支`、右下显示 context 用量进度条（绿 <50% / 黄 50-79% / 红 ≥80%，`refreshInterval: 120` 定时刷新），指向其它 statusline（如 ccstatusline）的自有配置不会被改动。用户自己添加的 `ask` 条目和其它 permissions 键不会被改动；重复运行脚本只会补回缺失的基线条目。
+`sync-claude-hooks.py` 把仓库 `hooks/` 下的脚本安装到 `~/.claude/hooks/`、仓库 `statusline.sh` 安装到 `~/.claude/statusline.sh`，并向 `~/.claude/settings.json` 安全合并三类 wxh 拥有的条目（带时间戳备份；`env`、模型、密钥等用户自有字段绝不改动）：一是 Trellis commit 门禁的 PreToolUse 条目（Trellis 项目没有活动任务时拦截 `git commit`，用户已明确豁免时使用命令前缀 `WXH_TRELLIS_BYPASS=1`）；二是 permissions 基线——缺失时补 `defaultMode: "acceptEdits"`，已有权限模式保留，外加破坏性命令（`rm`、`git push --force`、`docker rm`、`kubectl delete`、`npm publish` 等）的 `ask` 确认列表；三是 statusLine 状态栏——左下显示 `目录 | 模型 ⎇ 分支`、右下显示 context 用量进度条（绿 <50% / 黄 50-79% / 红 ≥80%，`refreshInterval: 120` 定时刷新），指向其它 statusline（如 ccstatusline）的自有配置不会被改动。用户已有权限模式、Skill 启用选择、混合分组内的用户 hook、`ask` 条目及其它权限键保留；重复同步仅更新本库已识别 hook 和补缺失默认项。门禁是常见直接命令的工作流检查，不能代替宿主权限。
 
 ### Claude Code 更新
 
@@ -203,11 +203,11 @@ python3 "$HOME/.wxh-dev-standard/scripts/validate-skills.py"
 
 `sync-zcode.py` 完成 ZCode 专属同步（幂等，可重复运行；改动 `~/.zcode/cli/config.json` 前自动做带时间戳备份）：
 
-1. 仓库 `CLAUDE.md` -> `~/.zcode/AGENTS.md`（ZCode 用户级指令文件；内容取 Claude 系提示词，含 Trellis 任务规则与权限确认清单）；
+1. 仓库 `zcode/AGENTS.md` -> `~/.zcode/AGENTS.md`（ZCode 用户级指令，与其他端共享核心语义）；
 2. `~/.agents/references`、`~/.agents/templates` 软链到仓库对应目录（`cnb-ci`、`docker-build` 的 Skill 通过 `../../` 相对路径引用它们）；
 3. `hooks/gate-commit-trellis.py` 安装到 `~/.zcode/hooks/`，并把 deny 输出适配为退出码 2 + stderr——ZCode 对 hook stdout 做严格 schema 校验，Claude 的 `hookSpecificOutput` 键会被作废导致门禁静默失效；上游脚本有变动时脚本会报错提醒，不会静默装坏；
-4. MCP 基线按 `mcp/claude.mcp.example.json` 安全合并进 `~/.zcode/cli/config.json` 的 `mcp.servers`：只新增缺失服务、绝不覆盖已有条目；`${VAR}` 形式的密钥在对应环境变量未设置时自动省略（context7 匿名模式可用，设置 `CONTEXT7_API_KEY` 后重跑脚本即可带上）；
-5. Trellis commit 门禁注册进同一 `config.json` 的 `hooks`（`enabled: true`、PreToolUse/Bash、15 秒超时；ZCode 配置文件 hook 必须显式 `enabled: true` 才会运行）。
+4. MCP 基线按 `mcp/claude.mcp.example.json` 安全合并进 `~/.zcode/cli/config.json` 的 `mcp.servers`：只新增缺失服务、绝不覆盖已有条目；`${VAR}` 形式的密钥在对应环境变量未设置时自动省略（已有服务不会因重跑自动更新；补充密钥应在目标端修改相应已有配置）；
+5. Trellis commit 门禁注册进同一 `config.json` 的 `hooks`（缺失时补 `enabled: true`，已有 false 保留；PreToolUse/Bash、15 秒超时）。仅更新本库 hook，混合分组内的用户 hook 保留；用户关闭 hook 时门禁不会运行。
 
 仓库的 Claude 权限基线（`defaultMode: "acceptEdits"` + 破坏性命令 `ask` 清单）是 Claude settings.json 机制，ZCode 有自己的权限体系，不在此同步范围。
 
@@ -283,3 +283,13 @@ python3 "$HOME/.wxh-dev-standard/scripts/validate-skills.py"
 正常使用时只描述实际任务，不需要手工说“加载 xxx Skill”。任务匹配 Skill 的 `description` 后，Agent 应自行读取并执行，不先把 Skill 教程展示给用户。
 
 全局提示词只保存长期行为；具体流程放 `skills/`；工具接入放 `mcp/`；旧机器结构和迁移判断放 `migration/`；业务事实和 CodeGraph/Trellis 状态留在具体项目。
+
+## 共享源码与分端验证
+
+三份指令使用同一核心约束，Codex 与 PI 共用 AGENTS.md；各端加载文件仍分别同步。`sync-global-instructions.py --all` 只同步四端指令，`--zcode` 可仅同步 ZCode 指令；完整 ZCode 安装仍使用 sync-zcode.py。全局指令文件是宿主加载的长期规则，不代替系统层权限。
+
+Skill 正文共享，各端启用与权限配置分别保留。Claude 的 off 会同时隐藏并禁止调用，不能当成“仅手动”；缺失配置使用 on/name-only，已有 off 选择仍保留。Claude 的 disable-model-invocation 与 Codex openai.yaml 的调用政策不是跨端通用开关；ZCode/PI 需按实际版本确认加载与显式调用行为。23 个 Skill 在 Claude/Codex 设置为显式调用，其余允许匹配，实际还受各端用户启用配置影响。
+
+修改后运行 `python3 scripts/validate-skills.py` 与 `python3 scripts/test-sync.py`。测试使用临时 HOME，不启动 MCP、不调用外部账户，也不修改真实用户设置。它验证分发与合并，不证明模型实际行为已通过；新会话中还需确认实际加载，并用典型任务检查误触发、重复确认和验证遗漏。
+
+同步遇到 settings.json/config.json 软链且需要改写时明确拒绝，保留共享目标；异常 hooks/permissions 结构也明确报错，不替换为默认内容。

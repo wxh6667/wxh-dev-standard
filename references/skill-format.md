@@ -24,7 +24,7 @@ description: What the skill does and exactly when the agent should use it.
 
 The description is discovery metadata. Put realistic trigger intent there because Codex can invoke Skills implicitly when the task matches the description. The full body is loaded only after selection, so keep it focused on execution. Long reference material should be loaded on demand instead of copied into every Skill.
 
-For OpenAI-specific optional metadata, `agents/openai.yaml` may define UI/dependencies/invocation policy. `policy.allow_implicit_invocation` defaults to `true`; this library generally keeps Skills implicitly invokable and only writes host metadata when there is a concrete reason.
+For OpenAI-specific optional metadata, `agents/openai.yaml` may define UI/dependencies/invocation policy. `policy.allow_implicit_invocation` defaults to `true`; this library selects implicit or explicit invocation by task. Explicit workflows also set Claude disable-model-invocation: true; do not assume either field controls ZCode or PI.
 
 ## Global vs project scope
 

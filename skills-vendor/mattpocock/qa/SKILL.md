@@ -1,6 +1,6 @@
 ---
 name: qa
-description: Interactive QA session where user reports bugs or issues conversationally, and the agent files GitHub issues. Explores the codebase in the background for context and domain language. Use when user wants to report bugs, do QA, file issues conversationally, or mentions "QA session".
+description: 用于用户明确要求 QA 会话或整理缺陷报告；核对预期、复现与项目上下文，只有发布已获授权时才创建 GitHub Issue。
 ---
 
 # QA Session
@@ -21,9 +21,9 @@ Do NOT over-interview. If the description is clear enough to file, move on.
 
 ### 2. Explore the codebase in the background
 
-While talking to the user, kick off an Agent (subagent_type=Explore) in the background to understand the relevant area. The goal is NOT to find a fix — it's to:
+Inspect the relevant area directly, or delegate independent exploration when it helps and the host supports it. The goal is NOT to find a fix — it's to:
 
-- Learn the domain language used in that area (check UBIQUITOUS_LANGUAGE.md)
+- Learn the domain language used in that area (check the existing domain glossary, such as CONTEXT.md or UBIQUITOUS_LANGUAGE.md)
 - Understand what the feature is supposed to do
 - Identify the user-facing behavior boundary
 
@@ -46,7 +46,7 @@ Keep as a single issue when:
 
 ### 4. File the GitHub issue(s)
 
-Create issues with `gh issue create`. Do NOT ask the user to review first — just file and share URLs.
+If issue publication is already authorized, create issues with `gh issue create` and share URLs without asking again. Otherwise prepare the complete issue bodies for review and obtain publication authorization before writing to GitHub.
 
 Issues must be **durable** — they should still make sense after major refactors. Write from the user's perspective.
 
@@ -118,7 +118,7 @@ When creating a breakdown:
 #### Rules for all issue bodies
 
 - **No file paths or line numbers** — these go stale
-- **Use the project's domain language** (check UBIQUITOUS_LANGUAGE.md if it exists)
+- **Use the project's domain language** (check the existing glossary if it exists)
 - **Describe behaviors, not code** — "the sync service fails to apply the patch" not "applyPatch() throws on line 42"
 - **Reproduction steps are mandatory** — if you can't determine them, ask the user
 - **Keep it concise** — a developer should be able to read the issue in 30 seconds

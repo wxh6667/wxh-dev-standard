@@ -1,94 +1,14 @@
 ---
 name: design-an-interface
-description: Generate multiple radically different interface designs for a module using parallel sub-agents. Use when user wants to design an API, explore interface options, compare module shapes, or mentions "design it twice".
+description: 用于用户明确要求比较模块 API 或接口设计，或 design it twice；生成有实质差异的候选并比较调用方式与取舍。
 ---
 
 # Design an Interface
 
-Based on "Design It Twice" from "A Philosophy of Software Design": your first idea is unlikely to be the best. Generate multiple radically different designs, then compare.
+先从已有上下文确认问题、调用者、关键操作、兼容和性能约束，以及接口需要隐藏的复杂度。只询问会改变设计的缺失决策。
 
-## Workflow
+提出有实质差异的候选，例如最小常用接口、可扩展接口和面向主要调用者的接口；不按固定人数或方法数量凑方案。独立设计值得并行且宿主支持时才委派，给每个执行者不同约束，否则直接比较。
 
-### 1. Gather Requirements
+每个候选给出接口签名、调用示例、内部隐藏的复杂度、依赖策略和错误/顺序约束。比较简单程度、正确使用难度、兼容性、实现效率、深度与变更集中程度，可用适当表格或短段落。
 
-Before designing, understand:
-
-- [ ] What problem does this module solve?
-- [ ] Who are the callers? (other modules, external users, tests)
-- [ ] What are the key operations?
-- [ ] Any constraints? (performance, compatibility, existing patterns)
-- [ ] What should be hidden inside vs exposed?
-
-Ask: "What does this module need to do? Who will use it?"
-
-### 2. Generate Designs (Parallel Sub-Agents)
-
-Spawn 3+ sub-agents simultaneously using Task tool. Each must produce a **radically different** approach.
-
-```
-Prompt template for each sub-agent:
-
-Design an interface for: [module description]
-
-Requirements: [gathered requirements]
-
-Constraints for this design: [assign a different constraint to each agent]
-- Agent 1: "Minimize method count - aim for 1-3 methods max"
-- Agent 2: "Maximize flexibility - support many use cases"
-- Agent 3: "Optimize for the most common case"
-- Agent 4: "Take inspiration from [specific paradigm/library]"
-
-Output format:
-1. Interface signature (types/methods)
-2. Usage example (how caller uses it)
-3. What this design hides internally
-4. Trade-offs of this approach
-```
-
-### 3. Present Designs
-
-Show each design with:
-
-1. **Interface signature** - types, methods, params
-2. **Usage examples** - how callers actually use it in practice
-3. **What it hides** - complexity kept internal
-
-Present designs sequentially so user can absorb each approach before comparison.
-
-### 4. Compare Designs
-
-After showing all designs, compare them on:
-
-- **Interface simplicity**: fewer methods, simpler params
-- **General-purpose vs specialized**: flexibility vs focus
-- **Implementation efficiency**: does shape allow efficient internals?
-- **Depth**: small interface hiding significant complexity (good) vs large interface with thin implementation (bad)
-- **Ease of correct use** vs **ease of misuse**
-
-Discuss trade-offs in prose, not tables. Highlight where designs diverge most.
-
-### 5. Synthesize
-
-Often the best design combines insights from multiple options. Ask:
-
-- "Which design best fits your primary use case?"
-- "Any elements from other designs worth incorporating?"
-
-## Evaluation Criteria
-
-From "A Philosophy of Software Design":
-
-**Interface simplicity**: Fewer methods, simpler params = easier to learn and use correctly.
-
-**General-purpose**: Can handle future use cases without changes. But beware over-generalization.
-
-**Implementation efficiency**: Does interface shape allow efficient implementation? Or force awkward internals?
-
-**Depth**: Small interface hiding significant complexity = deep module (good). Large interface with thin implementation = shallow module (avoid).
-
-## Anti-Patterns
-
-- Don't let sub-agents produce similar designs - enforce radical difference
-- Don't skip comparison - the value is in contrast
-- Don't implement - this is purely about interface shape
-- Don't evaluate based on implementation effort
+给出推荐及理由，必要时组合候选。当前授权仅为设计时交付设计；实施按用户任务范围执行。架构术语需要补充时读取 `../codebase-design/SKILL.md`，沿用项目领域语言。

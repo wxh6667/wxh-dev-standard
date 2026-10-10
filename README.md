@@ -3,10 +3,10 @@
 面向个人开发环境的跨项目全局 AI Coding 配置库，存在的意义：
 
 1. **跨机器备份个人习惯**：全局提示词、自研 Skill、hooks、MCP 基线的唯一事实源，任何主机 clone 后一键还原；
-2. **按功能消解工具重叠**：同一能力只保留一个真实载体（官方插件/官方 Skill > MCP 工具 > 自建 Skill > 提示词内流程），四端各自出厂自带的能力不搬运、不分发；
+2. **按功能消解工具重叠**：执行工具与专业策略分工，真正重复的实现收敛为一个来源，四端各自出厂自带的能力不搬运、不分发；
 3. **沉淀个人习惯，同时保留让模型变好的基础约束**：调试优先、代码质量、安全边界、主机资源保护等底层行为约束长期保留，具体流程持续向 Skill 迁移。
 
-Codex、Claude Code、ZCode 与 PI-Desktop 四端平行、分别安装更新；重叠的消解按**功能/工具**维度进行（某能力归哪个工具就只归它），而不是按端各复制一套。PI-Desktop 的全局 Skill 目录就是 `~/.agents/skills`，与 Codex/ZCode 天然共用，是唯一无需单独分发 Skills 的端。
+Codex、Claude Code、ZCode 与 PI-Desktop 保留各自的指令入口、权限和 MCP 配置，同一仓库维护共享 Skill 源码。Codex、ZCode 与本库对应的 PI-Desktop 共用 `~/.agents/skills`，Claude 使用 `~/.claude/skills`；这些入口链接同一源码，因此源码更新会影响已连接的各端，不代表各端配置可以互相覆盖。
 
 本仓库按内容分：
 
@@ -20,7 +20,7 @@ Codex、Claude Code、ZCode 与 PI-Desktop 四端平行、分别安装更新；�
 
 ## 全局提示词标准源
 
-- [`AGENTS.md`](AGENTS.md)：**Codex 全局系统提示词标准源**，安装时同步到 `~/.codex/AGENTS.md`；
+- [`AGENTS.md`](AGENTS.md)：**Codex 全局长期指令标准源**，安装时同步到 `~/.codex/AGENTS.md`；
 - [`CLAUDE.md`](CLAUDE.md)：**Claude Code 全局提示词标准源**，安装时同步到 `~/.claude/CLAUDE.md`；
 - [`zcode/AGENTS.md`](zcode/AGENTS.md)：**ZCode 全局提示词标准源**（ZCode 用户级指令文件名为 `~/.zcode/AGENTS.md`），由 `scripts/sync-zcode.py` 同步。与 `CLAUDE.md` 同一套基础约束，仅保留 ZCode 侧真实差异（如会话任务工具名）。
 - PI-Desktop：复用根目录 [`AGENTS.md`](AGENTS.md)（与 Codex 同一份标准源），安装时同步到 `~/.pi/agent/AGENTS.md`；全局 Skills 与 Codex 共用 `~/.agents/skills`，无需单独分发；项目级指令分层读取项目根的 `AGENTS.md` / `CLAUDE.md`。
@@ -39,7 +39,7 @@ Codex、Claude Code、ZCode 与 PI-Desktop 四端平行、分别安装更新；�
 ## 核心交付约定
 
 - 修改现有项目先理解真实结构和业务，优先复用已有代码、脚本和部署方式。
-- Serena、Trellis 已安装但当前项目未初始化时，由 `ai-context-init` 完成项目级初始化。
+- 工程项目缺少工具上下文时，由 `ai-context-init` 汇总并按用户决定处理；主目录全局配置维护不套用项目初始化流程。索引工具以各端实际配置为准。
 - 同一可交付业务运行类型默认维护 **1 个最终自定义业务镜像**；不要仅因为 frontend/backend/nginx 技术分层就自动拆多个自定义镜像。
 - 生产业务镜像默认由 CNB 构建，不以本机 `docker build` 作为生产交付路径。
 - 默认 Registry 前缀：`registry.cn-shanghai.aliyuncs.com/heilaowang/<project>`。
@@ -79,11 +79,11 @@ python3 ~/.wxh-dev-standard/scripts/validate-skills.py
 
 Claude Code 的 MCP 按 [`mcp/claude.mcp.example.json`](mcp/claude.mcp.example.json) 和当前 Claude 配置方式单独合并。
 
-`sync-claude-hooks.py` 额外安装用户级 hooks：Trellis commit 门禁（Trellis 项目无活动任务时拦截 `git commit`，豁免关键字 `no-trellis`）；permissions 基线为 `defaultMode: "acceptEdits"` 加破坏性命令 `ask` 确认列表。
+`sync-claude-hooks.py` 额外安装用户级 hooks：Trellis commit 门禁（Trellis 项目无活动任务时拦截 `git commit`，用户已明确豁免时使用命令前缀 `WXH_TRELLIS_BYPASS=1`）；permissions 仅在缺失时补 `defaultMode: "acceptEdits"`，并合并破坏性命令 `ask` 列表；已有权限模式、Skill 选择和用户 hook 保留。门禁仅检查常见直接 Bash 命令，不是完整 shell 安全沙箱。
 
 ## ZCode 安装
 
-ZCode 侧是独立的一套：用 `CLAUDE.md`（同步为 `~/.zcode/AGENTS.md`）+ `skills/`（与 Codex、PI-Desktop 共用 `~/.agents/skills`）+ `hooks/` + ZCode MCP，不碰 `~/.codex` 和 `~/.claude`。
+ZCode 侧是独立的一套：用 `zcode/AGENTS.md`（同步为 `~/.zcode/AGENTS.md`）+ `skills/`（与 Codex、PI-Desktop 共用 `~/.agents/skills`）+ `hooks/` + ZCode MCP，不碰 `~/.codex` 和 `~/.claude`。
 
 ```bash
 git clone https://github.com/wxh6667/wxh-dev-standard.git ~/.wxh-dev-standard
@@ -111,41 +111,42 @@ MCP：PI 把 MCP 配置保存在应用私有存储并由设置面板管理，没
 
 ## 自动加载
 
-正常使用时用户只描述实际任务，不需要说"加载 xxx Skill"。Skill 的 `description` 负责发现，命中后 Agent 自行读取完整 `SKILL.md` 并执行。
+自动匹配的专业 Skill 由 `description` 负责发现，命中后按需读取正文与参考。23 个流程/审查 Skill（第三方 22 个及 moyu）在 Claude/Codex 元数据中采用显式调用；各端实际启用政策以宿主设置为准，不假设 ZCode/PI 自动解释这些字段。Claude 缺失配置默认保留 Cloudflare 入口与 web-perf 的完整描述，其他低频项使用 name-only；off 会完全禁用，已有用户选择不覆盖。调用 Skill 不扩大提交、发布或部署授权。
 
 ## 更新
 
-Codex 安装只更新 Codex：
+Codex 指令与配置单独同步：
 
 ```text
 更新我的 wxh-dev-standard Codex 全局开发环境。
 ```
 
-Claude Code 安装只更新 Claude：
+Claude Code 指令与配置单独同步：
 
 ```text
 更新我的 wxh-dev-standard Claude Code 全局开发环境。
 ```
 
-ZCode 安装只更新 ZCode：
+ZCode 指令与配置单独同步：
 
 ```text
 更新我的 wxh-dev-standard ZCode 全局开发环境。
 ```
 
-PI-Desktop 安装只更新 PI-Desktop：
+PI-Desktop 指令单独同步：
 
 ```text
 更新我的 wxh-dev-standard PI-Desktop 全局开发环境。
 ```
 
-维护流程应只同步对应工具的全局指令和 Skill，并检查对应 MCP 基线；不要因为更新其中一个工具而覆盖另一个工具的配置。
+维护流程只同步选定端的指令和配置，不覆盖其他端设置；共享 Skill 源码更新会同时作用于现有软链。仅同步四端指令可运行 `scripts/sync-global-instructions.py --all`（包含 ZCode，不安装 MCP 或 hooks）。修改后运行 `python3 scripts/validate-skills.py` 和 `python3 scripts/test-sync.py`，后者在临时目录验证四端分发和配置保留。
 
 ## 目录
 
 ```text
-AGENTS.md     Codex 全局系统提示词标准源，安装时同步到 ~/.codex/AGENTS.md；PI-Desktop 复用同一份，同步到 ~/.pi/agent/AGENTS.md
-CLAUDE.md     Claude Code 全局提示词标准源（~/.claude/CLAUDE.md）；ZCode 全局提示词标准源（~/.zcode/AGENTS.md）
+AGENTS.md     Codex 全局长期指令标准源，安装时同步到 ~/.codex/AGENTS.md；PI-Desktop 复用同一份，同步到 ~/.pi/agent/AGENTS.md
+CLAUDE.md     Claude Code 全局指令标准源（~/.claude/CLAUDE.md）
+zcode/AGENTS.md ZCode 全局指令标准源（~/.zcode/AGENTS.md）
 skills/       13 个自研 Skills（业务四件套 + 评审/通用增强）
 skills-vendor/ 55 个第三方 Skills 快照（cloudflare / mattpocock / app-shell-ui，来源见其 SOURCES.md）
 hooks/        Trellis commit 门禁 hook 标准源（Claude 原样安装；ZCode 由 sync-zcode.py 适配安装）

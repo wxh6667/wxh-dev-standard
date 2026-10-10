@@ -1,78 +1,118 @@
 #!/usr/bin/env python3
+"""Check discovery fields, invocation consistency and concrete Markdown links.
+
+This lightweight check does not replace a host's full YAML/schema validation.
+"""
 from pathlib import Path
 import re
 import sys
+from urllib.parse import unquote, urlsplit
 
 ROOT = Path(__file__).resolve().parents[1]
-errors = []
-count = 0
-
-# 自研 skills/<skill>；第三方 skills-vendor/<vendor>/<skill>，
-# vendor 目录自身含 SKILL.md 时视为单个 skill（如 app-shell-ui）。
-OWNED = ROOT / "skills"
-VENDOR = ROOT / "skills-vendor"
 
 
-def collect(source: Path, *, is_vendored: bool) -> list[tuple[Path, bool]]:
+def collect(source: Path) -> list[Path]:
     if not source.is_dir():
         return []
     if (source / "SKILL.md").is_file():
-        return [(source, is_vendored)]
-    return [(d, is_vendored) for d in sorted(p for p in source.iterdir() if p.is_dir())]
+        return [source]
+    return sorted(p for p in source.iterdir() if p.is_dir())
 
 
-dirs = collect(OWNED, is_vendored=False)
-if VENDOR.is_dir():
-    for vendor in sorted(p for p in VENDOR.iterdir() if p.is_dir()):
-        dirs.extend(collect(vendor, is_vendored=True))
+def field(frontmatter: str, key: str) -> str | None:
+    match = re.search(rf"(?m)^{re.escape(key)}:[ \t]*(.*)$", frontmatter)
+    if not match:
+        return None
+    value = match.group(1).strip()
+    if value in {">", "|", ">-", "|-"}:
+        lines = []
+        for line in frontmatter[match.end():].splitlines():
+            if line and not line[0].isspace():
+                break
+            if line.strip():
+                lines.append(line.strip())
+        return " ".join(lines)
+    return value.strip(" \t'\"")
 
-for directory, is_vendored in sorted(dirs):
-    skill = directory / "SKILL.md"
-    if not skill.exists():
-        errors.append(f"{directory.relative_to(ROOT)}: missing SKILL.md")
-        continue
 
-    count += 1
-    text = skill.read_text(encoding="utf-8")
-    if not text.startswith("---\n"):
-        errors.append(f"{skill.relative_to(ROOT)}: missing YAML frontmatter")
-        continue
+def validate(root: Path = ROOT) -> tuple[int, list[str]]:
+    errors = []
+    directories = collect(root / "skills")
+    vendor = root / "skills-vendor"
+    if vendor.is_dir():
+        for group in sorted(p for p in vendor.iterdir() if p.is_dir()):
+            directories.extend(collect(group))
+    names = set()
+    count = 0
+    for directory in sorted(directories):
+        skill = directory / "SKILL.md"
+        label = str(skill.relative_to(root))
+        if not skill.is_file():
+            errors.append(f"{label}: missing SKILL.md")
+            continue
+        count += 1
+        text = skill.read_text(encoding="utf-8")
+        if not text.startswith("---\n"):
+            errors.append(f"{label}: missing YAML frontmatter")
+            continue
+        end = text.find("\n---\n", 4)
+        if end < 0:
+            errors.append(f"{label}: unclosed YAML frontmatter")
+            continue
+        frontmatter = text[4:end]
+        name = field(frontmatter, "name")
+        description = field(frontmatter, "description")
+        if name != directory.name or not name or not re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", name):
+            errors.append(f"{label}: name must match directory and use lowercase hyphenated words")
+        if name in names:
+            errors.append(f"{label}: duplicate skill name {name}")
+        names.add(name)
+        if not description:
+            errors.append(f"{label}: missing description")
+        elif len(description) > 1024:
+            errors.append(f"{label}: description exceeds 1024 characters (ZCode/Agent Skills limit)")
+        disabled = field(frontmatter, "disable-model-invocation")
+        if disabled not in {None, "true", "false"}:
+            errors.append(f"{label}: disable-model-invocation must be true or false")
+        metadata = directory / "agents" / "openai.yaml"
+        if metadata.is_file():
+            meta = metadata.read_text(encoding="utf-8")
+            policy = re.search(r"(?m)^[ \t]*allow_implicit_invocation:[ \t]*(\S+)[ \t]*$", meta)
+            if policy and policy.group(1) not in {"true", "false"}:
+                errors.append(f"{metadata.relative_to(root)}: invalid invocation boolean")
+            elif (disabled == "true") != bool(policy and policy.group(1) == "false"):
+                errors.append(f"{label}: Claude and Codex explicit invocation settings disagree")
+        elif disabled == "true":
+            errors.append(f"{label}: explicit invocation needs agents/openai.yaml for Codex")
 
-    end = text.find("\n---\n", 4)
-    if end < 0:
-        errors.append(f"{skill.relative_to(ROOT)}: unclosed YAML frontmatter")
-        continue
+        # Check literal links in instructions, not examples inside fenced code.
+        body = re.sub(r"(?ms)^(```|~~~).*?^\1[^\n]*$", "", text[end + 5:])
+        body = re.sub(r"(`+).*?\1", "", body, flags=re.S)
+        for target in re.findall(r"\[[^\]]*\]\(([^)]+)\)", body):
+            target = target.strip().split(" ", 1)[0].strip("<>")
+            parsed = urlsplit(target)
+            if parsed.scheme or parsed.netloc or target.startswith("#"):
+                continue
+            path = unquote(parsed.path)
+            if not path or any(char in path for char in "<>{}*"):
+                continue
+            if not (directory / path).exists():
+                errors.append(f"{label}: missing local link {path}")
+    if count == 0:
+        errors.append("no skills found")
+    return count, errors
 
-    frontmatter = text[4:end]
-    name_match = re.search(r"(?m)^name:\s*(.+?)\s*$", frontmatter)
-    desc_match = re.search(r"(?m)^description:\s*(.+?)\s*$", frontmatter)
-    if not name_match:
-        errors.append(f"{skill.relative_to(ROOT)}: missing name")
-    elif name_match.group(1).strip(" '\"") != directory.name:
-        errors.append(
-            f"{skill.relative_to(ROOT)}: name must match directory ({directory.name})"
-        )
-    if not desc_match or not desc_match.group(1).strip(" '\""):
-        errors.append(f"{skill.relative_to(ROOT)}: missing description")
 
-    # 上游触发策略按 vendor 快照原样保留，只对自研 skill 校验隐式触发。
-    if is_vendored:
-        continue
-    openai_meta = directory / "agents" / "openai.yaml"
-    if openai_meta.exists():
-        meta = openai_meta.read_text(encoding="utf-8")
-        if re.search(r"(?m)^\s*allow_implicit_invocation:\s*false\s*$", meta, re.I):
-            errors.append(
-                f"{openai_meta.relative_to(ROOT)}: implicit invocation is disabled; this global library expects automatic matching"
-            )
+def main() -> int:
+    count, errors = validate()
+    if errors:
+        print("Skill validation failed:")
+        for error in errors:
+            print(f"- {error}")
+        return 1
+    print(f"OK: validated {count} skills; names, descriptions, invocation policy and Markdown links")
+    return 0
 
-if count == 0:
-    errors.append("no skills found")
 
-if errors:
-    print("Skill validation failed:")
-    for error in errors:
-        print(f"- {error}")
-    sys.exit(1)
-
-print(f"OK: validated {count} skills; implicit invocation policy is compatible")
+if __name__ == "__main__":
+    sys.exit(main())

@@ -5,14 +5,15 @@ Installs the repo-owned hook scripts to ~/.claude/hooks/ and the statusline
 script to ~/.claude/statusline.sh, registers the hooks in
 ~/.claude/settings.json, and merges the wxh-owned permissions baseline
 (defaultMode + dangerous-command ask list), the wxh-owned skillOverrides
-baseline (low-frequency vendor skills off/name-only) and the wxh-owned
+baseline (low-frequency vendor skills on/name-only) and the wxh-owned
 statusLine block into the same file. Registration
 is a safe merge: env, model, secrets and every other user-owned key are
 never touched; only the wxh-owned PreToolUse entries, the wxh-owned
 permissions keys and a statusLine block pointing at the wxh script are
 added/updated. A user-configured statusLine pointing anywhere else is kept.
-User-added `ask` entries are preserved
-and re-running the script re-adds removed baseline entries. A timestamped
+Existing defaultMode and all user-selected skillOverrides are preserved;
+missing defaults are added. User-added `ask` entries are preserved and
+re-running the script re-adds missing ask baseline entries. A timestamped
 backup of settings.json is taken before any change.
 
 Entries are written in the schema-required matcher-group shape:
@@ -25,6 +26,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import shlex
 import shutil
 from datetime import datetime
 from pathlib import Path
@@ -43,26 +45,25 @@ HOOK_MANIFEST = {
 
 # wxh-owned skillOverrides baseline merged into settings.json.
 # Vendor skills that crowd the skill-listing context budget (1% of the
-# context window by default) without being in daily use. "off" removes them
-# from the model-visible listing entirely (directories and manual dispatch
-# stay on disk); "name-only" keeps the name listed without the description.
-# User-set overrides for other skills are never touched.
+# context window by default) without being in daily use. "name-only" retains
+# discovery and manual invocation; "off" disables both, so it is not a default.
+# User-set overrides, including these skill names, are never touched.
 SKILL_OVERRIDES_BASELINE = {
     # Cloudflare vendor snapshot (skills-vendor/cloudflare, 14 skills)
-    "agents-sdk": "off",
-    "cloudflare": "off",
-    "cloudflare-email-service": "off",
-    "cloudflare-one": "off",
-    "cloudflare-one-migrations": "off",
-    "durable-objects": "off",
-    "nextjs-on-cloudflare": "off",
-    "sandbox-migrate-to-next": "off",
-    "sandbox-next": "off",
-    "sandbox-stable": "off",
-    "turnstile-spin": "off",
-    "web-perf": "off",
-    "workers-best-practices": "off",
-    "wrangler": "off",
+    "agents-sdk": "name-only",
+    "cloudflare": "on",
+    "cloudflare-email-service": "name-only",
+    "cloudflare-one": "name-only",
+    "cloudflare-one-migrations": "name-only",
+    "durable-objects": "name-only",
+    "nextjs-on-cloudflare": "name-only",
+    "sandbox-migrate-to-next": "name-only",
+    "sandbox-next": "name-only",
+    "sandbox-stable": "name-only",
+    "turnstile-spin": "name-only",
+    "web-perf": "on",
+    "workers-best-practices": "name-only",
+    "wrangler": "name-only",
     # app-shell-ui: low-frequency, keep manually invocable via /
     "app-shell-ui": "name-only",
 }
@@ -129,15 +130,6 @@ def wanted_group(script_name: str) -> dict:
     }
 
 
-def is_wxh_group(item: object, script_name: str) -> bool:
-    """True if item is a matcher group whose hooks contain exactly our entry."""
-    if not isinstance(item, dict) or not isinstance(item.get("hooks"), list):
-        return False
-    if item.get("matcher") != HOOK_MANIFEST[script_name]:
-        return False
-    return len(item["hooks"]) == 1 and entry_matches(item["hooks"][0], script_name)
-
-
 def is_legacy_bare_entry(item: object, script_name: str) -> bool:
     """Bare entry written by older sync versions: invalid schema, no group."""
     return entry_matches(item, script_name)
@@ -152,6 +144,8 @@ def install_script(source: Path, target: Path, label: str) -> None:
         backup = target.with_name(f"{target.name}.bak-wxh-{stamp}")
         shutil.copy2(target, backup)
         print(f"[{label}] BACKUP {backup}")
+        if target.is_symlink():
+            target.unlink()
     shutil.copy2(source, target)
     target.chmod(0o755)
     print(f"[{label}] SYNC {source} -> {target}")
@@ -173,28 +167,52 @@ def sync_statusline_script() -> None:
 
 
 def entry_matches(existing: object, script_name: str) -> bool:
-    """Match a wxh hook entry by script basename, tolerating path/quoting differences."""
+    """Match only known wxh paths, tolerating path/quoting differences.
+
+    A user script that merely shares the basename must not match.
+    """
     if not isinstance(existing, dict):
         return False
     command = existing.get("command")
     if not isinstance(command, str):
         return False
+    known = {CLAUDE_DIR / "hooks" / script_name, HOOKS_SOURCE / script_name}
+    try:
+        parts = shlex.split(command)
+    except ValueError:
+        parts = []
+    if len(parts) == 2 and Path(parts[0]).name in {"python", "python3"}:
+        if Path(parts[1]) in known:
+            return True
+    # Legacy entries may hold backslashes a shell would strip; match the
+    # full wxh path so a same-basename user script still never matches.
     normalized = command.replace("\\", "/")
-    return normalized.endswith(script_name) or f"/{script_name}" in normalized
+    return any(path.as_posix() in normalized for path in known)
 
 
 def register_settings(script_name: str, settings: dict) -> None:
     hook_group = wanted_group(script_name)
-    pretooluse = settings.get("hooks", {}).get("PreToolUse")
-    entries = pretooluse if isinstance(pretooluse, list) else []
+    hooks = settings.setdefault("hooks", {})
+    if not isinstance(hooks, dict):
+        raise SystemExit("settings hooks is not an object; refusing to edit")
+    entries = hooks.setdefault("PreToolUse", [])
+    if not isinstance(entries, list):
+        raise SystemExit("settings hooks.PreToolUse is not a list; refusing to edit")
 
     replaced = False
     for idx, item in enumerate(entries):
-        if is_wxh_group(item, script_name):
+        if (
+            isinstance(item, dict)
+            and item.get("matcher") == HOOK_MANIFEST[script_name]
+            and isinstance(item.get("hooks"), list)
+            and any(entry_matches(h, script_name) for h in item["hooks"])
+        ):
             # wxh-owned group already present; refresh it in place.
-            if isinstance(item, dict) and item != hook_group:
-                item.clear()
-                item.update(hook_group)
+            if item != hook_group:
+                item["hooks"] = [
+                    hook_group["hooks"][0] if entry_matches(h, script_name) else h
+                    for h in item["hooks"]
+                ]
                 print(f"[settings] UPDATED PreToolUse group for {script_name}")
             else:
                 print(f"[settings] OK PreToolUse group for {script_name}")
@@ -209,27 +227,30 @@ def register_settings(script_name: str, settings: dict) -> None:
 
     if not replaced:
         entries.append(hook_group)
-        if not isinstance(pretooluse, list):
-            settings.setdefault("hooks", {})["PreToolUse"] = entries
         print(f"[settings] ADDED PreToolUse group for {script_name}")
 
 
 def sync_permissions(settings: dict) -> None:
     """Merge the wxh-owned permissions baseline into settings['permissions'].
 
-    Only the baseline keys are written; every other permissions key and every
-    user-added ask entry are preserved. Re-running restores baseline entries
-    that were removed.
+    Defaults are added only when missing. Existing modes, other permission
+    keys and user-added ask entries are preserved; missing ask rules are added.
     """
     permissions = settings.get("permissions")
-    if not isinstance(permissions, dict):
+    if "permissions" not in settings:
         permissions = {}
         settings["permissions"] = permissions
+    if not isinstance(permissions, dict):
+        raise SystemExit("settings permissions is not an object; refusing to edit")
 
     for key, value in PERMISSIONS_BASELINE.items():
         if key == "ask":
             existing = permissions.get("ask")
-            merged = [e for e in existing if isinstance(e, str)] if isinstance(existing, list) else []
+            if "ask" in permissions and (
+                not isinstance(existing, list) or not all(isinstance(e, str) for e in existing)
+            ):
+                raise SystemExit("settings permissions.ask is not a string list; refusing to edit")
+            merged = list(existing) if isinstance(existing, list) else []
             for rule in value:
                 if rule not in merged:
                     merged.append(rule)
@@ -239,7 +260,7 @@ def sync_permissions(settings: dict) -> None:
             else:
                 print("[settings] OK permissions.ask")
         else:
-            if permissions.get(key) != value:
+            if key not in permissions:
                 permissions[key] = value
                 print(f"[settings] UPDATED permissions.{key} = {value}")
             else:
@@ -249,18 +270,18 @@ def sync_permissions(settings: dict) -> None:
 def sync_skill_overrides(settings: dict) -> None:
     """Merge the wxh-owned skillOverrides baseline into settings.
 
-    Only the baseline-listed skill names are written; overrides the user set
-    for other skills are preserved. Re-running restores baseline entries
-    that were removed.
+    Only missing baseline-listed names are added; every user-set mode is kept.
     """
     overrides = settings.get("skillOverrides")
-    if not isinstance(overrides, dict):
+    if "skillOverrides" not in settings:
         overrides = {}
         settings["skillOverrides"] = overrides
+    if not isinstance(overrides, dict):
+        raise SystemExit("settings skillOverrides is not an object; refusing to edit")
 
     changed = 0
     for name, mode in SKILL_OVERRIDES_BASELINE.items():
-        if overrides.get(name) != mode:
+        if name not in overrides:
             overrides[name] = mode
             changed += 1
     if changed:
@@ -280,10 +301,23 @@ def statusline_baseline() -> dict:
 
 
 def is_wxh_statusline(entry: object) -> bool:
-    """True if the statusLine block points at the wxh-installed script."""
+    """True if the statusLine block points at the wxh-installed script.
+
+    Tolerates path/quoting differences but never matches a user statusline
+    that merely ends in statusline.sh elsewhere.
+    """
     if not isinstance(entry, dict) or not isinstance(entry.get("command"), str):
         return False
-    return entry["command"].replace("\\", "/").rstrip('"').endswith("statusline.sh")
+    command = entry["command"]
+    known = {CLAUDE_DIR / "statusline.sh", STATUSLINE_SOURCE}
+    try:
+        parts = shlex.split(command)
+    except ValueError:
+        parts = []
+    if len(parts) == 2 and Path(parts[0]).name == "bash" and Path(parts[1]) in known:
+        return True
+    normalized = command.replace("\\", "/")
+    return any(path.as_posix() in normalized for path in known)
 
 
 def sync_statusline(settings: dict) -> None:
@@ -331,6 +365,8 @@ def main() -> int:
     if json.dumps(settings, sort_keys=True, ensure_ascii=False) != before:
         changed = True
     if changed or not SETTINGS_PATH.is_file():
+        if SETTINGS_PATH.is_symlink():
+            raise SystemExit(f"{SETTINGS_PATH} is a symlink; refusing to write through shared user configuration")
         if SETTINGS_PATH.exists():
             stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
             backup = SETTINGS_PATH.with_name(f"{SETTINGS_PATH.name}.bak-wxh-{stamp}")

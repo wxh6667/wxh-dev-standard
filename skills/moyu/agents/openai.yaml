@@ -1,0 +1,5 @@
+interface:
+  display_name: "修改范围审查"
+  short_description: "按用户目标检查过度工程与必要修改"
+policy:
+  allow_implicit_invocation: false

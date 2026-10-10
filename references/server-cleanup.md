@@ -1,6 +1,6 @@
 # Server Cleanup Reference
 
-Use with `skills/server-cleanup/SKILL.md`. This is for deployment-server resources, not AI rule cleanup.
+This reference covers deployment-server resources. Confirm ownership and dependencies before cleanup; no separate server-cleanup Skill is required.
 
 Start with read-only inventory:
 

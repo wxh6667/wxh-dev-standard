@@ -11,6 +11,7 @@ TARGETS = {
     "codex": (ROOT / "AGENTS.md", Path.home() / ".codex" / "AGENTS.md"),
     "claude": (ROOT / "CLAUDE.md", Path.home() / ".claude" / "CLAUDE.md"),
     "pi": (ROOT / "AGENTS.md", Path.home() / ".pi" / "agent" / "AGENTS.md"),
+    "zcode": (ROOT / "zcode" / "AGENTS.md", Path.home() / ".zcode" / "AGENTS.md"),
 }
 
 
@@ -35,6 +36,10 @@ def sync_one(name: str) -> None:
             shutil.copy2(target, backup)
         print(f"[{name}] BACKUP {backup}")
 
+        # Replace the instruction entry, never write through a user symlink.
+        if target.is_symlink():
+            target.unlink()
+
     shutil.copy2(source, target)
     print(f"[{name}] SYNC {source} -> {target}")
 
@@ -44,6 +49,7 @@ def main() -> int:
     parser.add_argument("--codex", action="store_true")
     parser.add_argument("--claude", action="store_true")
     parser.add_argument("--pi", action="store_true")
+    parser.add_argument("--zcode", action="store_true")
     parser.add_argument("--all", action="store_true")
     args = parser.parse_args()
 
@@ -54,6 +60,8 @@ def main() -> int:
         selected.append("claude")
     if args.all or args.pi:
         selected.append("pi")
+    if args.all or args.zcode:
+        selected.append("zcode")
     if not selected:
         selected.append("codex")
 

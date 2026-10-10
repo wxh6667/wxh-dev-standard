@@ -76,13 +76,14 @@ The Agents SDK provides:
 npm ls agents  # Should show agents package
 ```
 
-If not installed:
+If implementation requires the SDK and it is not installed, add the needed package with the project's package manager. Read-only review or diagnosis does not require installing it:
 ```bash
 npm install agents
 ```
 
 For chat agents:
 ```bash
+# Add only packages required by the chosen chat implementation.
 npm install agents @cloudflare/ai-chat ai @ai-sdk/react
 ```
 

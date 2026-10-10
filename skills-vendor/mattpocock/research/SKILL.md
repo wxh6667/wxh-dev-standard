@@ -1,12 +1,12 @@
 ---
 name: research
-description: Investigate a question against high-trust primary sources and capture the findings as a Markdown file in the repo. Use when the user wants a topic researched, docs or API facts gathered, or reading legwork delegated to a background agent.
+description: 用于需要外部证据的专题调研，核对官方文档、源码、规范或一手资料并给出可追溯结论。
 ---
 
-Spin up a **background agent** to do the research, so you keep working while it reads.
+# Research
 
-Its job:
+从当前问题和资料范围出发，优先使用拥有相关事实的一手来源。区分来源事实、推断与覆盖缺口，引用直接支持结论的材料。
 
-1. Investigate the question against **primary sources** (official docs, source code, specs, first-party APIs), not a secondary write-up of them. Follow every claim back to the source that owns it.
-2. Write the findings to a single Markdown file, citing each claim's source.
-3. Save it where the repo already keeps such notes; match the existing convention, and if there is none, put it somewhere sensible and say where.
+独立检索确实能减少等待时才委派，并给出问题、资料范围和交付要求；否则直接研究。采用专业 Skill 已取得的有效证据，不重复全套检索。
+
+按用户要求交付。需要持久报告时复用项目已有资料位置，非项目任务使用用户指定位置或临时文件，不为简短查询创建仓库文档。证据足以回答问题时停止，明确尚未核验的部分。

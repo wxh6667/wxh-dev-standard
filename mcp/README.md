@@ -35,13 +35,13 @@ Codex 当前正式 MCP 配置源是 `~/.codex/config.toml` 中的 `[mcp_servers.
 
 1. 先读取目标机器已有 `~/.codex/config.toml`；
 2. 备份原文件；
-3. 检查 `npx`、`uvx`、`codegraph`、`fastctx` 等实际依赖是否存在；
+3. 检查 `npx`、`uvx`、`fastctx` 等实际依赖是否存在；
 4. 只合并缺失或需要更新的 `[mcp_servers.*]` 表，不覆盖模型、沙箱、项目授权、插件等其它 Codex 配置；
 5. Context7 等密钥使用环境变量或工具自己的登录机制，不写入 Git；
 6. FastCtx 需要按目标机器实际可执行文件位置配置，不能复制原 `/root/...` 绝对路径；
 7. 合并后使用 Codex 的 MCP 列表/诊断能力验证每个服务是否可启动。
 
-原备份中 Codex 配置过 `codegraph`、`context7`、`deobfuscate-mcp-server`（禁用）、`fastctx`、`figma-bridge`、`mcp-server-time`、`openaiDeveloperDocs` 和 `playwright`。是否全部启用由目标机器已有依赖和实际用途决定，不因为出现在备份里就强行安装。
+当前片段基线（有效项）：Context7、sequential-thinking、Serena、Playwright 和 mcp-server-time，与 Claude 基线对齐（差别仅在 awslabs document loader 为 Claude 专属）。原备份中 Codex 还配置过 `codegraph`、`deobfuscate-mcp-server`（禁用）、`fastctx`、`figma-bridge`、`openaiDeveloperDocs` 等；其中 codegraph 已移出基线，其余按目标机器依赖和实际用途决定，不因为出现在备份里就强行安装。
 
 ## Claude Code
 
@@ -51,7 +51,7 @@ Codex 当前正式 MCP 配置源是 `~/.codex/config.toml` 中的 `[mcp_servers.
 
 1. 先读取目标机器已有 Claude MCP 配置（`claude mcp list` 或 `~/.claude.json` 的全局 `mcpServers`）；
 2. 备份原配置；
-3. 检查 `npx`、`uvx`、`codegraph` 等实际依赖是否存在；
+3. 检查 `npx`、`uvx` 等实际依赖是否存在；
 4. 只合并缺失或需要更新的条目，不覆盖机器上已有的其它 MCP、项目级配置和用户设置；
 5. Context7 等密钥使用 `${VAR}` 环境变量占位符或工具自己的登录机制，不写入 Git；
 6. FastCtx 不在基线内：它依赖机器专有的绝对路径，只在目标机器定位到可执行文件后才按需添加；
@@ -76,9 +76,9 @@ MCP 提供工具能力，Skill 决定什么时候、如何使用工具，全局�
 
 被抽离进 Skills 的是**调用策略**，不是工具本体：`context7-docs` 和 `ai-context-init` 只承接"何时、如何用"，对应的 MCP 仍必须安装，否则 Skill 没有可调用的工具。反之，Skill 中不重复编写 MCP 的内置说明或调用参数细节，避免同一事实出现两个来源。
 
-## Serena vs CodeGraph
+## Serena 与 CodeGraph
 
-早期版本使用 CodeGraph 作为代码查询工具。当前基线已替换为 Serena，主要差异：
+早期版本使用 CodeGraph 作为代码查询工具。现已统一为 Serena：Claude、ZCode 与 Codex 基线均使用 Serena，CodeGraph 已移出基线。仍在使用 CodeGraph 的机器按其已有配置保留，不强制迁移，也不为统一名称改动。主要差异：
 
 | 维度 | CodeGraph | Serena |
 |------|-----------|--------|

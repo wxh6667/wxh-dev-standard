@@ -41,13 +41,13 @@ Inspect the user's prompt before starting the numbered wizard. If it says the wi
 
 ## Conversation flow
 
-The user pasted the prompt. You are in a multi-step dialog. Detect what you can, ask only when you have to, confirm before every irreversible step. Each numbered moment is one agent message. Items marked **[wait for user]** require a user response.
+Inspect existing authorization and decisions first. Read-only checks and already authorized implementation continue without repeated confirmation; ask when account, domains, protected surfaces or secret destinations remain unresolved. Steps are operations, not a fixed number of messages. The explicit trusted-executable and secret write-manifest confirmations in the existing-widget flow remain required before retrieving or writing its secret.
 
-1. **Brief acknowledge.** One sentence: "I'll run Turnstile setup end to end. That's: check auth, scan the codebase, create the widget, embed it where visitor requests need verification, wire server-side siteverify, validate. Proceed?" **[wait for user]** Do NOT present a plan yet. Auth + scan come first.
+1. **State the task.** Briefly describe the authorized integration, then inspect authentication and the codebase. Ask whether to proceed only if setup itself has not been authorized.
 
 2. **CLI check.** Spin's helper scripts use `curl` against `api.cloudflare.com`. Account enumeration requires either an explicit `$CLOUDFLARE_ACCOUNT_ID` or a user-approved canonical absolute `WRANGLER_BIN` outside the project with exact `WRANGLER_VERSION`. Never use `npx`, `pnpm exec`, a package script, a project-local binary, or an unapproved executable for a credential-bearing command. Never install Wrangler automatically during the flow.
 
-3. **Auth + scope probe (FIRST irreversible action).** Run `scripts/auth-probe.sh`. If account enumeration needs Wrangler, set `PROJECT_ROOT`, approved canonical `WRANGLER_BIN`, and exact `WRANGLER_VERSION` first. Branch on `status`:
+3. **Auth + scope probe (read-only).** Run `scripts/auth-probe.sh`. If account enumeration needs Wrangler, set `PROJECT_ROOT`, approved canonical `WRANGLER_BIN`, and exact `WRANGLER_VERSION` first. Branch on `status`:
    - `ok`: continue to Step 4. The script already picked the account (single-account token, or one matching `$CLOUDFLARE_ACCOUNT_ID`).
    - `missing_token` or `missing_scope`: ask the user to create a token at https://dash.cloudflare.com/profile/api-tokens → Custom token → permission `Account.Turnstile:Edit` → include the target account in Account Resources. **Do NOT direct them to `wrangler login`** unless wrangler's OAuth scope includes `Account.Turnstile:Edit` (varies by wrangler version). Offer two ways to provide the token without chat, cleanest first:
      1. **Export + relaunch** (token enters neither chat nor shell history): `read -rsp 'Cloudflare API token: ' token; echo; export CLOUDFLARE_API_TOKEN="$token"; unset token`, then restart the agent from that terminal.
@@ -60,14 +60,14 @@ The user pasted the prompt. You are in a multi-step dialog. Detect what you can,
 
 4. **Account selection.** If `auth-probe.sh` returned `ok` after a `multiple_accounts` round-trip, this is already done. Otherwise the script picked the single account silently and you continue to Step 5.
 
-5. **Domain.** Always include `localhost` and `127.0.0.1`. For production, scan `package.json` `homepage`, `wrangler.toml`, `README.md`, `AGENTS.md`, git remote. Confirm: "I'll register for `localhost`, `127.0.0.1`, and `<domain>`. OK?" **[wait for user]** If no production domain is found, ask. Registering local and production domains on one widget is safe only when each backend deployment validates the exact frontend hostname returned by siteverify. Never include `localhost` or `127.0.0.1` in a production backend's expected-hostname allowlist.
+5. **Domain.** Always include `localhost` and `127.0.0.1`. For production, scan `package.json` `homepage`, `wrangler.toml`, `README.md`, `AGENTS.md`, git remote. Reuse already approved domains. Repository-discovered domains are candidates: confirm the exact list if it has not already been approved. If no production domain is known, ask. Registering local and production domains on one widget is safe only when each backend deployment validates the exact frontend hostname returned by siteverify. Never include `localhost` or `127.0.0.1` in a production backend's expected-hostname allowlist.
 
 6. **Codebase scan.** Detect three things silently:
    - **Frontend framework** (Next.js, Astro, SvelteKit, Hugo, vanilla, etc.) → drives the widget embed snippet.
    - **Backend handler location** (Express route, Next.js API route, Rails controller, Workers fetch handler, Pages Function, etc.) → drives the siteverify snippet.
    - **Existing CAPTCHA** (reCAPTCHA / hCaptcha) → switches Step 7 to migration mode.
 
-7. **Insertion plan.** Show the candidate list with `[recommended]` / `[skip by default]` markers; ask the user to confirm (numbers, "all", "recommended", or a list). Assign each chosen surface a stable action such as `signup`, `login`, or `contact`. Actions must be 1–32 characters and contain only letters, numbers, underscores, or hyphens. Show the action-to-handler mapping for confirmation. **[wait for user]** If an existing CAPTCHA was detected, present a migration plan instead (see "Migrating from another CAPTCHA").
+7. **Insertion plan.** Use the surfaces already specified by the user. If surfaces remain undecided, show candidates with recommended choices and ask once. Assign each chosen surface a stable action such as `signup`, `login`, or `contact`. Actions must be 1–32 characters and contain only letters, numbers, underscores, or hyphens. Show the action-to-handler mapping; request confirmation only for unresolved choices. If an existing CAPTCHA was detected, present a migration plan instead (see "Migrating from another CAPTCHA").
 
 8. **Widget creation.** Prefer the approved Wrangler executable when its `turnstile widget` subcommand is available:
 
@@ -79,7 +79,7 @@ The user pasted the prompt. You are in a multi-step dialog. Detect what you can,
 
    In a `set +x` subshell, capture the complete stdout JSON in one shell variable. Parse `SITEKEY` and a non-empty, non-whitespace `WIDGET_SECRET` with `jq`, then unset the response variable. If the approved Wrangler executable is missing or older than the Turnstile subcommand, use the same capture pattern with `scripts/widget-create.sh --account-id <id> --name <name> --domains <list> --mode managed`. Do not fall back after an authentication or API failure. Report only the sitekey. Never print the complete response or write the secret to disk except into the user's own secret store in Step 9.
 
-9. **Wire the integration.** State the contract: "I'll embed the widget at each chosen surface and add a canonical siteverify call inside its existing handler. The handler will require `success === true`, the expected action, and an approved frontend hostname. The existing handler logic stays the same. The secret lives in your env as `TURNSTILE_SECRET`." Ask "yes" / "show". **[wait for user]** If "show", print unified diffs and ask again. Do NOT propose alternate behavior (mail delivery, custom backends).
+9. **Wire the integration.** State the contract: "I'll embed the widget at each chosen surface and add a canonical siteverify call inside its existing handler. The handler will require `success === true`, the expected action, and an approved frontend hostname. The existing handler logic stays the same. The secret lives in your env as `TURNSTILE_SECRET`." Implement when these surfaces and edits are authorized. If the user requests preview, provide unified diffs before applying them. Do NOT propose alternate behavior (mail delivery, custom backends).
 
    Canonical server-side siteverify (Node / fetch idiom; adapt to the detected backend):
 
@@ -126,9 +126,9 @@ The user pasted the prompt. You are in a multi-step dialog. Detect what you can,
 
    Set `TURNSTILE_HOSTNAMES` to the deployment-specific frontend hostnames. A production value must not include `localhost` or `127.0.0.1`. Write the secret into the user's existing secret store (`.env` for Node/Rails/Python, standard `"$WRANGLER_BIN" secret put TURNSTILE_SECRET` for a confirmed existing Worker, or the platform's secret manager). Before writing to any `.env`-style file, run `git check-ignore -q <path>` from within a git working tree; if the file is not ignored (or the project is not under git), stop and ask the user to add it to `.gitignore` or point you at the platform's secret manager. For Workers, resolve the exact name, configuration, and environment, then run `secret list` with the same target arguments immediately before the write. Never inline the secret or ask the user to paste it into chat. For an existing widget, follow the guarded retrieval flow below.
 
-10. **Validation.** For a newly created widget, set `EXPECTED_DOMAINS_JSON` to the user-approved JSON array and run `(set +x; printf '%s' "$WIDGET_SECRET" | scripts/validate.sh --sitekey "$SITEKEY" --account-id "$ACCOUNT_ID" --expected-domains "$EXPECTED_DOMAINS_JSON")`, then unset `WIDGET_SECRET`. The validator reads the secret only from standard input and never writes it to disk or command arguments. For an existing widget, the guarded flow validates the retrieved secret before storing it. In both flows, exercise the actual protected backend with a fresh real Turnstile token, verify one successful request, then verify that replaying the token is rejected. If the backend cannot be run, report destination validation as pending and do not claim end-to-end success. **[wait for user if anything fails]**
+10. **Validation.** For a newly created widget, set `EXPECTED_DOMAINS_JSON` to the user-approved JSON array and run `(set +x; printf '%s' "$WIDGET_SECRET" | scripts/validate.sh --sitekey "$SITEKEY" --account-id "$ACCOUNT_ID" --expected-domains "$EXPECTED_DOMAINS_JSON")`, then unset `WIDGET_SECRET`. The validator reads the secret only from standard input and never writes it to disk or command arguments. For an existing widget, the guarded flow validates the retrieved secret before storing it. In both flows, exercise the actual protected backend with a fresh real Turnstile token, verify one successful request, then verify that replaying the token is rejected. If the backend cannot be run, report destination validation as pending and do not claim end-to-end success. Diagnose failures within scope; ask only for missing access, decisions or authorization.
 
-11. **Persist skill.** Ask: "Save the Spin skill to `.claude/skills/turnstile-spin/SKILL.md` so I can reuse it on follow-up tasks?" Default yes. **[wait for user]** For an agent that supports directory-based skill bundles, run `scripts/persist-skill.sh --path <bundle-directory>/SKILL.md`. For a file-oriented rules target, install the hosted `prompt.md` directly instead; do not run `persist-skill.sh`.
+11. **Skill installation.** Use the installed bundle. Do not copy it into a project or another host unless the user requests persistent installation; then use that host's supported skill location.
 
 12. **Final report.** Print the structured summary: what was created, what was validated, what to do next.
 
@@ -136,7 +136,7 @@ The user pasted the prompt. You are in a multi-step dialog. Detect what you can,
 
 - Do not write the Turnstile secret to disk except as part of the user's own env / secret store.
 - Do not skip validation.
-- Do not overwrite files without showing a diff.
+- Preserve existing work and keep edits reviewable; show a diff before applying when preview was requested.
 - Do not call siteverify from the browser. Always: browser → user's backend → siteverify.
 - Do not deploy any extra infrastructure (Workers, proxies, sidecars). The customer's existing backend calls siteverify directly.
 - Do not use `sudo` or install global packages without asking.

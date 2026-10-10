@@ -74,6 +74,7 @@ Search: `blockConcurrencyWhile`, `idFromName`, `getByName`, `setAlarm`, `sql.exe
 ```typescript
 import { DurableObject } from "cloudflare:workers";
 
+// Illustrative binding shape; use generated project binding types in real code.
 export interface Env {
   MY_DO: DurableObjectNamespace<MyDurableObject>;
 }
@@ -113,9 +114,9 @@ export default {
 
 1. **Model around coordination atoms** - One DO per chat room/game/user, not one global DO
 2. **Use `getByName()` for deterministic routing** - Same input = same DO instance
-3. **Use SQLite storage** - Configure `new_sqlite_classes` in migrations
+3. **Storage** - Prefer SQLite for new classes; preserve existing storage during unrelated maintenance and treat backend migration as a separate task
 4. **Initialize in constructor** - Use `blockConcurrencyWhile()` for schema setup only
-5. **Use RPC methods** - Not fetch() handler (compatibility date >= 2024-04-03)
+5. **Interface** - Prefer RPC for new internal calls when the compatibility date supports it; preserve existing fetch contracts unless migration is requested
 6. **Persist first, cache second** - Always write to storage before updating in-memory state
 7. **One alarm per DO** - `setAlarm()` replaces any existing alarm
 

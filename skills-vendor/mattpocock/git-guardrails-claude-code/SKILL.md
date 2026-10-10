@@ -5,7 +5,7 @@ description: Set up Claude Code hooks to block dangerous git commands (push, res
 
 # Setup Git Guardrails
 
-Sets up a PreToolUse hook that intercepts and blocks dangerous git commands before Claude executes them.
+Sets up a Claude Code PreToolUse hook for the command categories the user chooses. Inspect existing hooks first. The bundled parser covers direct commands; it is a workflow guard, not a shell sandbox or a replacement for host permissions. Do not install this Claude-specific hook into Codex, ZCode or PI.
 
 ## What Gets Blocked
 
@@ -15,13 +15,13 @@ Sets up a PreToolUse hook that intercepts and blocks dangerous git commands befo
 - `git branch -D`
 - `git checkout .` / `git restore .`
 
-When blocked, Claude sees a message telling it that it does not have authority to access these commands.
+Confirm the blocked categories only if they are undecided. Blocking all pushes is an optional policy: retain ordinary authorized pushes when the user only requested destructive-operation protection. Configure the copied script accordingly; an active hook enforces its configured policy even if a later chat asks for a blocked action.
 
 ## Steps
 
 ### 1. Ask scope
 
-Ask the user: install for **this project only** (`.claude/settings.json`) or **all projects** (`~/.claude/settings.json`)?
+Use the authorized scope, or ask once if undecided: **this project only** (`.claude/settings.json`) or **all projects** (`~/.claude/settings.json`)?
 
 ### 2. Copy the hook script
 
@@ -82,7 +82,7 @@ If the settings file already exists, merge the hook into the existing `hooks.Pre
 
 ### 4. Ask about customization
 
-Ask if user wants to add or remove any patterns from the blocked list. Edit the copied script accordingly.
+Apply the agreed blocked categories to the copied script. Ask only for unresolved policy choices, and verify both blocked commands and ordinary permitted commands, including git -C forms and quoted message text.
 
 ### 5. Verify
 

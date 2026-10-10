@@ -7,8 +7,6 @@ description: Implement or troubleshoot Cloudflare Email Sending and Email Routin
 
 Your knowledge of the Cloudflare Email Service, Email Routing or Email Sending may be outdated. **Prefer retrieval over pre-training** for any Cloudflare Email Service task.
 
-Cloudflare Email Service lets you send transactional emails and route incoming emails, all within the Cloudflare platform. Your knowledge of this product may be outdated — it launched in 2025 and is evolving rapidly. **Prefer retrieval over pre-training** for any Email Service task.
-
 **If there is any discrepancy between this skill and the sources below, always trust the original source.** The Cloudflare docs, REST API spec, `@cloudflare/workers-types`, and Agents SDK repo are the source of truth. This skill is a convenience guide — it may lag behind the latest changes. When in doubt, retrieve from the sources below and use what they say.
 
 ## Retrieval Sources
@@ -22,11 +20,13 @@ Cloudflare Email Service lets you send transactional emails and route incoming e
 
 ## FIRST: Check Prerequisites
 
-Before writing any email code, verify the basics are in place:
+First select sending, receiving/routing or an external REST integration. Check only its prerequisites:
 
-1. **Domain onboarded?** Run `npx wrangler email sending list` to see which domains have email sending enabled. If the domain isn't listed, run `npx wrangler email sending enable userdomain.com` or see [cli-and-mcp.md](references/cli-and-mcp.md) for full setup instructions.
-2. **Binding configured?** Look for `send_email` in `wrangler.jsonc` (for Workers)
-3. **postal-mime installed?** Run `npm ls postal-mime` (only needed for receiving/parsing emails)
+- Sending: verify the intended domain is onboarded using the installed CLI or API. Enable it only when setup is authorized, not during an unrelated diagnosis.
+- Workers binding: inspect the relevant `send_email` binding and generated types; REST clients do not need a Worker binding.
+- Receiving: inspect Email Routing and verified destinations. Check `postal-mime` only when parsing messages is required.
+
+Use the project's package manager and actual installed tool version. Match account, domain and environment before configuration changes or test sends.
 
 ## What Do You Need?
 

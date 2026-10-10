@@ -8,12 +8,15 @@ args = ["-y", "@upstash/context7-mcp"]
 env_vars = ["CONTEXT7_API_KEY"]
 startup_timeout_sec = 600
 
-[mcp_servers.codegraph]
-command = "codegraph"
-args = ["serve", "--mcp"]
+[mcp_servers.sequential-thinking]
+command = "npx"
+args = ["-y", "@modelcontextprotocol/server-sequential-thinking"]
+startup_timeout_sec = 600
 
-[mcp_servers.codegraph.env]
-CODEGRAPH_NO_DAEMON = "1"
+[mcp_servers.serena]
+command = "uvx"
+args = ["-p", "3.13", "serena-agent", "start-mcp-server", "--project-from-cwd", "--context", "codex"]
+startup_timeout_sec = 600
 
 [mcp_servers.playwright]
 command = "npx"

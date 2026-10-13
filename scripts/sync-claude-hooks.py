@@ -8,7 +8,8 @@ script to ~/.claude/statusline.sh, registers the hooks in
 baseline (low-frequency vendor skills on/name-only) and the wxh-owned
 statusLine block into the same file. Registration
 is a safe merge: env, model, secrets and every other user-owned key are
-never touched; only the wxh-owned PreToolUse entries, the wxh-owned
+never touched; only the wxh-owned hook entries (PreToolUse Trellis gate and
+UserPromptSubmit steer reminder), the wxh-owned
 permissions keys and a statusLine block pointing at the wxh script are
 added/updated. A user-configured statusLine pointing anywhere else is kept.
 Existing defaultMode and all user-selected skillOverrides are preserved;
@@ -17,7 +18,8 @@ re-running the script re-adds missing ask baseline entries. A timestamped
 backup of settings.json is taken before any change.
 
 Entries are written in the schema-required matcher-group shape:
-{"matcher": "...", "hooks": [{"type": "command", ...}]}. Bare entries
+{"matcher": "...", "hooks": [{"type": "command", ...}]}; matcher-less
+events such as UserPromptSubmit use {"hooks": [...]}. Bare entries
 written by older versions of this script (flagged by `claude /doctor`) are
 migrated in place.
 """
@@ -38,9 +40,11 @@ CLAUDE_DIR = Path.home() / ".claude"
 SETTINGS_PATH = CLAUDE_DIR / "settings.json"
 STATUSLINE_REFRESH_INTERVAL = 120
 
-# hook script name -> PreToolUse matcher
+# hook script name -> (settings.json hooks event, matcher). Matcherless
+# events (UserPromptSubmit) register groups without a "matcher" key.
 HOOK_MANIFEST = {
-    "gate-commit-trellis.py": "Bash",
+    "gate-commit-trellis.py": ("PreToolUse", "Bash"),
+    "steer-reminder.py": ("UserPromptSubmit", None),
 }
 
 # wxh-owned skillOverrides baseline merged into settings.json.
@@ -117,9 +121,9 @@ def command_for(script_name: str) -> str:
 
 
 def wanted_group(script_name: str) -> dict:
-    """Schema-valid matcher group for the script's wxh-owned entry."""
-    return {
-        "matcher": HOOK_MANIFEST[script_name],
+    """Schema-valid group for the script's wxh-owned entry."""
+    matcher = HOOK_MANIFEST[script_name][1]
+    group = {
         "hooks": [
             {
                 "type": "command",
@@ -128,6 +132,9 @@ def wanted_group(script_name: str) -> dict:
             }
         ],
     }
+    if matcher is not None:
+        return {"matcher": matcher, **group}
+    return group
 
 
 def is_legacy_bare_entry(item: object, script_name: str) -> bool:
@@ -191,19 +198,20 @@ def entry_matches(existing: object, script_name: str) -> bool:
 
 
 def register_settings(script_name: str, settings: dict) -> None:
+    event, matcher = HOOK_MANIFEST[script_name]
     hook_group = wanted_group(script_name)
     hooks = settings.setdefault("hooks", {})
     if not isinstance(hooks, dict):
         raise SystemExit("settings hooks is not an object; refusing to edit")
-    entries = hooks.setdefault("PreToolUse", [])
+    entries = hooks.setdefault(event, [])
     if not isinstance(entries, list):
-        raise SystemExit("settings hooks.PreToolUse is not a list; refusing to edit")
+        raise SystemExit(f"settings hooks.{event} is not a list; refusing to edit")
 
     replaced = False
     for idx, item in enumerate(entries):
         if (
             isinstance(item, dict)
-            and item.get("matcher") == HOOK_MANIFEST[script_name]
+            and item.get("matcher") == matcher
             and isinstance(item.get("hooks"), list)
             and any(entry_matches(h, script_name) for h in item["hooks"])
         ):
@@ -213,21 +221,21 @@ def register_settings(script_name: str, settings: dict) -> None:
                     hook_group["hooks"][0] if entry_matches(h, script_name) else h
                     for h in item["hooks"]
                 ]
-                print(f"[settings] UPDATED PreToolUse group for {script_name}")
+                print(f"[settings] UPDATED {event} group for {script_name}")
             else:
-                print(f"[settings] OK PreToolUse group for {script_name}")
+                print(f"[settings] OK {event} group for {script_name}")
             replaced = True
             break
         if is_legacy_bare_entry(item, script_name):
-            # Old-style bare entry: migrate it to the matcher-group shape.
+            # Old-style bare entry: migrate it to the group shape.
             entries[idx] = hook_group
-            print(f"[settings] MIGRATED bare PreToolUse entry for {script_name}")
+            print(f"[settings] MIGRATED bare {event} entry for {script_name}")
             replaced = True
             break
 
     if not replaced:
         entries.append(hook_group)
-        print(f"[settings] ADDED PreToolUse group for {script_name}")
+        print(f"[settings] ADDED {event} group for {script_name}")
 
 
 def sync_permissions(settings: dict) -> None:

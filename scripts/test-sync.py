@@ -72,6 +72,23 @@ class SyncTests(unittest.TestCase):
         module.sync_statusline(custom)
         self.assertEqual(custom, before)
 
+    def test_claude_steer_registration_and_ownership(self):
+        module = load("scripts/sync-claude-hooks.py")
+        name = "steer-reminder.py"
+        own = module.wanted_group(name)
+        self.assertNotIn("matcher", own)
+        self.assertEqual(module.HOOK_MANIFEST[name], ("UserPromptSubmit", None))
+        user = {"hooks": [{"type": "command", "command": "python3 /user/steer-reminder.py"}]}
+        settings = {"hooks": {"UserPromptSubmit": [user]}, "model": "keep"}
+        module.register_settings(name, settings)
+        entries = settings["hooks"]["UserPromptSubmit"]
+        self.assertEqual(len(entries), 2)
+        self.assertEqual(entries[0], user)
+        self.assertIn(own, entries)
+        before = copy.deepcopy(settings)
+        module.register_settings(name, settings)
+        self.assertEqual(settings, before)
+
     def test_invalid_settings_are_rejected(self):
         module = load("scripts/sync-claude-hooks.py")
         for value in ({"permissions": []}, {"permissions": {"ask": "custom"}}, {"permissions": {"ask": [1]}}):
@@ -184,6 +201,11 @@ class SyncTests(unittest.TestCase):
             self.assertEqual(result.returncode, 2)
             self.assertEqual(result.stdout, "")
             self.assertIn("Trellis", result.stderr)
+            self.assertTrue((home / ".claude/hooks/steer-reminder.py").is_file())
+            hooks = json.loads((home / ".claude/settings.json").read_text())["hooks"]
+            self.assertEqual(len(hooks["UserPromptSubmit"]), 1)
+            self.assertNotIn("matcher", hooks["UserPromptSubmit"][0])
+            self.assertIn("steer-reminder.py", hooks["UserPromptSubmit"][0]["hooks"][0]["command"])
             before = {path: path.read_bytes() for path in (home / ".claude/settings.json", home / ".zcode/cli/config.json")}
             for command in commands:
                 result = subprocess.run([sys.executable, str(ROOT / command[0]), *command[1:]], env=env, capture_output=True, text=True)

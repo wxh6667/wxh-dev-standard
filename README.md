@@ -13,7 +13,7 @@ Codex、Claude Code、ZCode 与 PI-Desktop 保留各自的指令入口、权限�
 1. 根目录 `AGENTS.md`（Codex 与 PI-Desktop 共用同一份）/ `CLAUDE.md`（Claude Code）/ `zcode/AGENTS.md`（ZCode）：各自的跨项目长期全局指令，共享同一套基础约束，端差异只保留真实机制差异；
 2. `skills/`：自研 Skill（Codex、ZCode 与 PI-Desktop 共用 `~/.agents/skills`，Claude Code 用 `~/.claude/skills`）；
 3. `skills-vendor/`：第三方 Skill 快照，与 `skills/` 一并分发；
-4. `hooks/`：hook 脚本标准源（Claude Code 原样安装；ZCode 由 `sync-zcode.py` 适配安装）；
+4. `hooks/`：hook 脚本标准源——Trellis commit 门禁（Claude Code 原样安装；ZCode 由 `sync-zcode.py` 适配安装）与 UserPromptSubmit steer 提醒（仅 Claude Code）；
 5. `mcp/`：各端 MCP 基线（只含个人自配服务，官方自带的 MCP 不收录），只合并，不整份覆盖。
 
 具体业务项目自己的需求、架构、数据库说明、项目 `AGENTS.md` / `CLAUDE.md`、Docker/CNB 文件以及 Serena/Trellis 项目状态继续留在各项目中。
@@ -79,7 +79,7 @@ python3 ~/.wxh-dev-standard/scripts/validate-skills.py
 
 Claude Code 的 MCP 按 [`mcp/claude.mcp.example.json`](mcp/claude.mcp.example.json) 和当前 Claude 配置方式单独合并。
 
-`sync-claude-hooks.py` 额外安装用户级 hooks：Trellis commit 门禁（Trellis 项目无活动任务时拦截 `git commit`，用户已明确豁免时使用命令前缀 `WXH_TRELLIS_BYPASS=1`）；permissions 仅在缺失时补 `defaultMode: "acceptEdits"`，并合并破坏性命令 `ask` 列表；已有权限模式、Skill 选择和用户 hook 保留。门禁仅检查常见直接 Bash 命令，不是完整 shell 安全沙箱。
+`sync-claude-hooks.py` 额外安装用户级 hooks：Trellis commit 门禁（Trellis 项目无活动任务时拦截 `git commit`，用户已明确豁免时使用命令前缀 `WXH_TRELLIS_BYPASS=1`）；UserPromptSubmit steer 提醒（每轮用户输入旁注入全局指令「输出与交付」「规划与验证」的精简版，对抗长会话指令衰减，思路来自 [NB-Corp/gpt-with-taste](https://github.com/NB-Corp/gpt-with-taste)，仅 Claude 端注册）；permissions 仅在缺失时补 `defaultMode: "auto"`，并合并破坏性命令 `ask` 列表；已有权限模式、Skill 选择和用户 hook 保留。门禁仅检查常见直接 Bash 命令，不是完整 shell 安全沙箱。
 
 ## ZCode 安装
 
@@ -149,7 +149,7 @@ CLAUDE.md     Claude Code 全局指令标准源（~/.claude/CLAUDE.md）
 zcode/AGENTS.md ZCode 全局指令标准源（~/.zcode/AGENTS.md）
 skills/       13 个自研 Skills（业务四件套 + 评审/通用增强）
 skills-vendor/ 55 个第三方 Skills 快照（cloudflare / mattpocock / app-shell-ui，来源见其 SOURCES.md）
-hooks/        Trellis commit 门禁 hook 标准源（Claude 原样安装；ZCode 由 sync-zcode.py 适配安装）
+hooks/        Trellis commit 门禁与 UserPromptSubmit steer 提醒 hook 标准源（Claude 原样安装；ZCode 仅适配安装门禁，steer 仅 Claude 端）
 mcp/          各端脱敏 MCP 基线与安全合并说明
 migration/    原环境备份的脱敏盘点与迁移说明
 references/   多个 Skill 共用的详细参考

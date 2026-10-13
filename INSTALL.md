@@ -101,7 +101,7 @@ https://github.com/wxh6667/wxh-dev-standard.git
 
 把仓库作为唯一源码放在 $HOME/.wxh-dev-standard。不存在就 clone；已经存在且 remote 正确就使用 fast-forward-only 更新，不 reset --hard。
 
-仓库根目录 CLAUDE.md 是 Claude Code 全局提示词标准源，同步到 ~/.claude/CLAUDE.md。把仓库 skills/ 安装到 ~/.claude/skills，并运行 Skill 校验。运行 scripts/sync-claude-hooks.py 安装仓库 hooks/ 到 ~/.claude/hooks/、statusline.sh 到 ~/.claude/statusline.sh，并安全合并注册进 ~/.claude/settings.json（PreToolUse、permissions 基线和 statusLine 字段，只动 wxh 拥有的条目，不碰 env/模型/密钥）。不要复制 Codex 的 ~/.codex 配置，也不要把整套 Skills 复制进每个业务项目。
+仓库根目录 CLAUDE.md 是 Claude Code 全局提示词标准源，同步到 ~/.claude/CLAUDE.md。把仓库 skills/ 安装到 ~/.claude/skills，并运行 Skill 校验。运行 scripts/sync-claude-hooks.py 安装仓库 hooks/ 到 ~/.claude/hooks/、statusline.sh 到 ~/.claude/statusline.sh，并安全合并注册进 ~/.claude/settings.json（PreToolUse Trellis 门禁、UserPromptSubmit steer 提醒、permissions 基线和 statusLine 字段，只动 wxh 拥有的条目，不碰 env/模型/密钥）。不要复制 Codex 的 ~/.codex 配置，也不要把整套 Skills 复制进每个业务项目。
 
 Claude MCP 参考 mcp/claude.mcp.example.json 单独安全合并；不复用 Codex config.toml。机器路径按当前机器探测，密钥和账号信息保留在本机私有配置。
 
@@ -109,7 +109,7 @@ Claude MCP 参考 mcp/claude.mcp.example.json 单独安全合并；不复用 Cod
 
 执行 Maven/Gradle、大型前端构建、完整测试等重任务时，同样必须以主机至少约 2 GiB MemAvailable 为安全底线；无法守住安全线就降低并发、限制任务或停止该重任务，不擅自停止生产服务腾内存。
 
-最后实际验证 ~/.claude/CLAUDE.md 与仓库根目录 CLAUDE.md 一致、全局 Skills 可发现且校验通过、~/.claude/hooks 下 wxh hooks 已安装且 settings.json 只新增了 wxh 拥有的 PreToolUse 条目、Claude MCP 可用。只报告实际结果、冲突、备份位置和仍需人工处理的问题。
+最后实际验证 ~/.claude/CLAUDE.md 与仓库根目录 CLAUDE.md 一致、全局 Skills 可发现且校验通过、~/.claude/hooks 下 wxh hooks 已安装且 settings.json 只新增了 wxh 拥有的 PreToolUse 与 UserPromptSubmit 条目、Claude MCP 可用。只报告实际结果、冲突、备份位置和仍需人工处理的问题。
 ```
 
 ### Claude Code 手工安装
@@ -144,7 +144,7 @@ python "$Repo\scripts\sync-claude-hooks.py"
 python "$Repo\scripts\validate-skills.py"
 ```
 
-`sync-claude-hooks.py` 把仓库 `hooks/` 下的脚本安装到 `~/.claude/hooks/`、仓库 `statusline.sh` 安装到 `~/.claude/statusline.sh`，并向 `~/.claude/settings.json` 安全合并三类 wxh 拥有的条目（带时间戳备份；`env`、模型、密钥等用户自有字段绝不改动）：一是 Trellis commit 门禁的 PreToolUse 条目（Trellis 项目没有活动任务时拦截 `git commit`，用户已明确豁免时使用命令前缀 `WXH_TRELLIS_BYPASS=1`）；二是 permissions 基线——缺失时补 `defaultMode: "acceptEdits"`，已有权限模式保留，外加破坏性命令（`rm`、`git push --force`、`docker rm`、`kubectl delete`、`npm publish` 等）的 `ask` 确认列表；三是 statusLine 状态栏——左下显示 `目录 | 模型 ⎇ 分支`、右下显示 context 用量进度条（绿 <50% / 黄 50-79% / 红 ≥80%，`refreshInterval: 120` 定时刷新），指向其它 statusline（如 ccstatusline）的自有配置不会被改动。用户已有权限模式、Skill 启用选择、混合分组内的用户 hook、`ask` 条目及其它权限键保留；重复同步仅更新本库已识别 hook 和补缺失默认项。门禁是常见直接命令的工作流检查，不能代替宿主权限。
+`sync-claude-hooks.py` 把仓库 `hooks/` 下的脚本安装到 `~/.claude/hooks/`、仓库 `statusline.sh` 安装到 `~/.claude/statusline.sh`，并向 `~/.claude/settings.json` 安全合并四类 wxh 拥有的条目（带时间戳备份；`env`、模型、密钥等用户自有字段绝不改动）：一是 Trellis commit 门禁的 PreToolUse 条目（Trellis 项目没有活动任务时拦截 `git commit`，用户已明确豁免时使用命令前缀 `WXH_TRELLIS_BYPASS=1`）；二是 steer 提醒的 UserPromptSubmit 条目（每轮用户输入旁注入全局指令「输出与交付」「规划与验证」的精简版，对抗长会话指令衰减，思路来自 NB-Corp/gpt-with-taste，仅 Claude 端）；三是 permissions 基线——缺失时补 `defaultMode: "auto"`，已有权限模式保留，外加破坏性命令（`rm`、`git push --force`、`docker rm`、`kubectl delete`、`npm publish` 等）的 `ask` 确认列表；四是 statusLine 状态栏——左下显示 `目录 | 模型 ⎇ 分支`、右下显示 context 用量进度条（绿 <50% / 黄 50-79% / 红 ≥80%，`refreshInterval: 120` 定时刷新），指向其它 statusline（如 ccstatusline）的自有配置不会被改动。用户已有权限模式、Skill 启用选择、混合分组内的用户 hook、`ask` 条目及其它权限键保留；重复同步仅更新本库已识别 hook 和补缺失默认项。门禁是常见直接命令的工作流检查，不能代替宿主权限。
 
 ### Claude Code 更新
 

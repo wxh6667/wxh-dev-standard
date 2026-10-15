@@ -109,8 +109,9 @@ def active_task_state(cwd: str) -> str:
         )
     except (OSError, ValueError, subprocess.TimeoutExpired):
         return "unknown"
-    if result.returncode != 0:
-        return "unknown"
+    # ``task.py current --json`` prints valid JSON with ``current_task: null``
+    # yet still exits non-zero when no task is active, so classify from the
+    # payload and keep the exit code advisory rather than authoritative.
     try:
         data = json.loads(result.stdout)
     except json.JSONDecodeError:

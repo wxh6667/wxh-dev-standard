@@ -8,7 +8,7 @@
 
 ### 业务工具集成
 
-- **ai-context-init** - 检查并初始化项目级 CodeGraph、Trellis 和 Agent 上下文（你的私有工具）
+- **ai-context-init** - 检查并初始化项目级符号索引（Serena）、Trellis 和 Agent 上下文（你的私有工具）
 
 ### 构建与部署规范
 

@@ -5,15 +5,16 @@ Installs the repo-owned hook scripts to ~/.claude/hooks/ and the statusline
 script to ~/.claude/statusline.sh, registers the hooks in
 ~/.claude/settings.json, and merges the wxh-owned permissions baseline
 (defaultMode + dangerous-command ask list), the wxh-owned skillOverrides
-baseline (low-frequency vendor skills on/name-only) and the wxh-owned
-statusLine block into the same file. Registration
+baseline (low-frequency vendor skills on/name-only), the wxh-owned
+skill-listing budget key and the wxh-owned statusLine block into the
+same file. Registration
 is a safe merge: env, model, secrets and every other user-owned key are
 never touched; only the wxh-owned hook entries (PreToolUse Trellis gate and
 UserPromptSubmit steer reminder), the wxh-owned
 permissions keys and a statusLine block pointing at the wxh script are
 added/updated. A user-configured statusLine pointing anywhere else is kept.
-Existing defaultMode and all user-selected skillOverrides are preserved;
-missing defaults are added. User-added `ask` entries are preserved and
+Existing defaultMode, all user-selected skillOverrides and a user-set
+skill-listing budget are preserved; missing defaults are added. User-added `ask` entries are preserved and
 re-running the script re-adds missing ask baseline entries. A timestamped
 backup of settings.json is taken before any change.
 
@@ -70,6 +71,20 @@ SKILL_OVERRIDES_BASELINE = {
     "wrangler": "name-only",
     # app-shell-ui: low-frequency, keep manually invocable via /
     "app-shell-ui": "name-only",
+}
+
+# wxh-owned scalar settings keys merged into settings.json. The skill
+# listing (name+description of every model-visible skill) is capped by
+# Claude Code at contextWindowTokens * 4 * fraction characters; the 1%
+# default (8000 chars on a 200k window) is smaller than a full standard
+# 68-skill listing (~10k chars incl. bundled/plugin skills, which are
+# exempt from degradation but still consume the budget). Over-budget
+# listings silently drop descriptions starting from the least-used
+# skills (usage score decays with a 7-day half-life), so low-frequency
+# skills lose keyword matching, stop being auto-triggered and never
+# recover. 0.02 covers the full listing. A user-set value is never touched.
+SETTINGS_KEYS_BASELINE = {
+    "skillListingBudgetFraction": 0.02,
 }
 
 # wxh-owned permissions baseline merged into settings.json.
@@ -298,6 +313,19 @@ def sync_skill_overrides(settings: dict) -> None:
         print("[settings] OK skillOverrides")
 
 
+def sync_settings_keys(settings: dict) -> None:
+    """Merge the wxh-owned scalar settings keys into settings.
+
+    Keys are set only when missing; a user-set value is always kept.
+    """
+    for key, value in SETTINGS_KEYS_BASELINE.items():
+        if key not in settings:
+            settings[key] = value
+            print(f"[settings] UPDATED {key} = {value}")
+        else:
+            print(f"[settings] OK {key}")
+
+
 def statusline_baseline() -> dict:
     # as_posix + quotes: same shell backslash-stripping issue as hook commands.
     script = (CLAUDE_DIR / "statusline.sh").as_posix()
@@ -369,6 +397,7 @@ def main() -> int:
         register_settings(name, settings)
     sync_permissions(settings)
     sync_skill_overrides(settings)
+    sync_settings_keys(settings)
     sync_statusline(settings)
     if json.dumps(settings, sort_keys=True, ensure_ascii=False) != before:
         changed = True

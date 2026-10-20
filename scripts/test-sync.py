@@ -36,19 +36,26 @@ class SyncTests(unittest.TestCase):
     def test_claude_choices_and_idempotence(self):
         module = load("scripts/sync-claude-hooks.py")
         settings = {"permissions": {"defaultMode": "default", "ask": ["Bash(custom:*)"], "allow": ["Read"]},
-                    "skillOverrides": {"cloudflare": "on", "app-shell-ui": "off"}, "model": "custom"}
+                    "skillOverrides": {"cloudflare": "on", "app-shell-ui": "off"}, "model": "custom",
+                    "skillListingBudgetFraction": 0.01}
         module.sync_permissions(settings)
         module.sync_skill_overrides(settings)
+        module.sync_settings_keys(settings)
         self.assertEqual(settings["permissions"]["defaultMode"], "default")
         self.assertIn("Bash(custom:*)", settings["permissions"]["ask"])
         self.assertEqual(settings["permissions"]["allow"], ["Read"])
         self.assertEqual(settings["skillOverrides"]["cloudflare"], "on")
         self.assertEqual(settings["skillOverrides"]["app-shell-ui"], "off")
         self.assertEqual(settings["model"], "custom")
+        self.assertEqual(settings["skillListingBudgetFraction"], 0.01)
         before = copy.deepcopy(settings)
         module.sync_permissions(settings)
         module.sync_skill_overrides(settings)
+        module.sync_settings_keys(settings)
         self.assertEqual(settings, before)
+        fresh = {}
+        module.sync_settings_keys(fresh)
+        self.assertEqual(fresh["skillListingBudgetFraction"], module.SETTINGS_KEYS_BASELINE["skillListingBudgetFraction"])
 
     def test_claude_mixed_hooks_and_ownership(self):
         module = load("scripts/sync-claude-hooks.py")

@@ -1,6 +1,6 @@
 ---
 name: writing-for-agents
-description: 用于编写 Agent 使用的文档、Skill 与长期指令，检查职责、按需引用和可验证的完成条件。
+description: 用于组织 Agent 使用的文档与 Skill 正文：职责划分、按需引用和可验证的完成条件。提示词、Base Instructions 与长期规则的内容变更用 write-instructions-zh。
 ---
 
 # Writing for Agents

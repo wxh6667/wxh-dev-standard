@@ -79,7 +79,7 @@ python3 ~/.wxh-dev-standard/scripts/validate-skills.py
 
 Claude Code 的 MCP 按 [`mcp/claude.mcp.example.json`](mcp/claude.mcp.example.json) 和当前 Claude 配置方式单独合并。
 
-`sync-claude-hooks.py` 额外安装用户级 hooks：Trellis commit 门禁（Trellis 项目无活动任务时拦截 `git commit`，用户已明确豁免时使用命令前缀 `WXH_TRELLIS_BYPASS=1`）；UserPromptSubmit steer 提醒（每轮用户输入旁注入全局指令「输出与交付」「规划与验证」的精简版，对抗长会话指令衰减，思路来自 [NB-Corp/gpt-with-taste](https://github.com/NB-Corp/gpt-with-taste)，仅 Claude 端注册）；permissions 仅在缺失时补 `defaultMode: "auto"`，并合并破坏性命令 `ask` 列表；已有权限模式、Skill 选择和用户 hook 保留。门禁仅检查常见直接 Bash 命令，不是完整 shell 安全沙箱。
+`sync-claude-hooks.py` 额外安装用户级 hooks：Trellis commit 门禁（Trellis 项目无活动任务时拦截 `git commit`，用户已明确豁免时使用命令前缀 `WXH_TRELLIS_BYPASS=1`）；UserPromptSubmit steer 提醒（每轮用户输入旁注入全局指令「输出与交付」「规划与验证」的精简版，对抗长会话指令衰减，思路来自 [NB-Corp/gpt-with-taste](https://github.com/NB-Corp/gpt-with-taste)，仅 Claude 端注册）；permissions 仅在缺失时补 `defaultMode: "acceptEdits"` 与 `allow: ["Bash"]`（普通命令不再逐条确认），并合并破坏性命令 `ask` 列表；已有权限模式、`allow` 列表、Skill 选择和用户 hook 保留。门禁仅检查常见直接 Bash 命令，不是完整 shell 安全沙箱。
 
 ## ZCode 安装
 

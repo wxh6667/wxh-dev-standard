@@ -4,7 +4,7 @@
 Installs the repo-owned hook scripts to ~/.claude/hooks/ and the statusline
 script to ~/.claude/statusline.sh, registers the hooks in
 ~/.claude/settings.json, and merges the wxh-owned permissions baseline
-(defaultMode + dangerous-command ask list), the wxh-owned skillOverrides
+(defaultMode, Bash allow rule + dangerous-command ask list), the wxh-owned skillOverrides
 baseline (low-frequency vendor skills on/name-only), the wxh-owned
 skill-listing budget key and the wxh-owned statusLine block into the
 same file. Registration
@@ -13,7 +13,7 @@ never touched; only the wxh-owned hook entries (PreToolUse Trellis gate and
 UserPromptSubmit steer reminder), the wxh-owned
 permissions keys and a statusLine block pointing at the wxh script are
 added/updated. A user-configured statusLine pointing anywhere else is kept.
-Existing defaultMode, all user-selected skillOverrides and a user-set
+Existing defaultMode, a user-set `allow` list, all user-selected skillOverrides and a user-set
 skill-listing budget are preserved; missing defaults are added. User-added `ask` entries are preserved and
 re-running the script re-adds missing ask baseline entries. A timestamped
 backup of settings.json is taken before any change.
@@ -88,12 +88,15 @@ SETTINGS_KEYS_BASELINE = {
 }
 
 # wxh-owned permissions baseline merged into settings.json.
-# defaultMode "auto" hands per-action permission decisions to the safety
-# classifier (the model decides), except the `ask` list, which always forces
-# explicit confirmation for destructive commands. User-added ask entries and
-# other permission keys (allow/deny/...) are never touched.
+# defaultMode "acceptEdits" auto-approves file edits; `allow: ["Bash"]` runs
+# shell commands without per-command confirmation, while the `ask` list always
+# forces explicit confirmation for destructive commands. Missing keys are
+# filled in; existing defaultMode/allow and user-added ask entries are kept.
 PERMISSIONS_BASELINE = {
-    "defaultMode": "auto",
+    "defaultMode": "acceptEdits",
+    "allow": [
+        "Bash",
+    ],
     "ask": [
         "Bash(rm:*)",
         "Bash(sudo rm:*)",

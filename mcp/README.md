@@ -47,6 +47,8 @@ Codex 当前正式 MCP 配置源是 `~/.codex/config.toml` 中的 `[mcp_servers.
 
 `claude.mcp.example.json` 是 Claude Code 的可移植 MCP 基线，与 Codex 片段来自同一份原环境，当前基线：Context7、sequential-thinking、AWS document loader、Serena、Playwright 和 mcp-server-time；figma-bridge 按需安装，不在基线。
 
+官方插件不写入本 MCP 基线。Claude 侧当前插件基线为 `desktop-commander@claude-plugins-official`（`read_multiple_files`、PDF/DOCX/Excel/图片读取）；安装与验证见仓库 `INSTALL.md` 的 Claude Code 章节。
+
 安装到新机器时应：
 
 1. 先读取目标机器已有 Claude MCP 配置（`claude mcp list` 或 `~/.claude.json` 的全局 `mcpServers`）；

@@ -67,7 +67,7 @@ Codex MCP 不使用文件覆盖方式安装，按 [`mcp/README.md`](mcp/README.m
 
 ## Claude Code 安装
 
-Claude Code 侧是独立的一套：只用 `CLAUDE.md` + `skills/` + `hooks/` + Claude MCP，不涉及 `AGENTS.md` 和 `~/.codex`。
+Claude Code 侧是独立的一套：用 `CLAUDE.md` + `skills/` + `hooks/` + Claude MCP + 官方插件，不涉及 `AGENTS.md` 和 `~/.codex`。
 
 ```bash
 git clone https://github.com/wxh6667/wxh-dev-standard.git ~/.wxh-dev-standard
@@ -78,6 +78,8 @@ python3 ~/.wxh-dev-standard/scripts/validate-skills.py
 ```
 
 Claude Code 的 MCP 按 [`mcp/claude.mcp.example.json`](mcp/claude.mcp.example.json) 和当前 Claude 配置方式单独合并。
+
+官方插件基线独立于 MCP 基线（`mcp/` 只收录个人自配 MCP）：`desktop-commander@claude-plugins-official`，提供 `read_multiple_files`（一次读多个文件）以及 PDF/DOCX/Excel/图片读取，替代额外的第三方 bash MCP。安装命令 `claude plugin install desktop-commander@claude-plugins-official`；安装后用 `claude plugin list` 确认 `enabled`，再 `/reload-plugins` 或重开会话使工具生效。
 
 `sync-claude-hooks.py` 额外安装用户级 hooks：Trellis commit 门禁（Trellis 项目无活动任务时拦截 `git commit`，用户已明确豁免时使用命令前缀 `WXH_TRELLIS_BYPASS=1`）；UserPromptSubmit steer 提醒（每轮用户输入旁注入全局指令「输出与交付」「规划与验证」的精简版，对抗长会话指令衰减，思路来自 [NB-Corp/gpt-with-taste](https://github.com/NB-Corp/gpt-with-taste)，仅 Claude 端注册）；permissions 仅在缺失时补 `defaultMode: "acceptEdits"` 与 `allow: ["Bash"]`（普通命令不再逐条确认），并合并破坏性命令 `ask` 列表；已有权限模式、`allow` 列表、Skill 选择和用户 hook 保留。门禁仅检查常见直接 Bash 命令，不是完整 shell 安全沙箱。
 

@@ -105,11 +105,13 @@ https://github.com/wxh6667/wxh-dev-standard.git
 
 Claude MCP 参考 mcp/claude.mcp.example.json 单独安全合并；不复用 Codex config.toml。机器路径按当前机器探测，密钥和账号信息保留在本机私有配置。
 
+安装官方插件 desktop-commander@claude-plugins-official（提供 read_multiple_files 与 PDF/DOCX/Excel/图片读取）；安装后用 claude plugin list 确认 enabled，并在新会话验证 read_multiple_files 可用。插件不属于 MCP 基线，不要写进 mcp/claude.mcp.example.json。
+
 如果存在旧 Claude workflow/rules/重复 Skills，参考 migration/ZIP-BACKUP-2026-09-10.md，先备份，只清理已经被当前提示词或 Skills 明确承接的高置信度重复项。
 
 执行 Maven/Gradle、大型前端构建、完整测试等重任务时，同样必须以主机至少约 2 GiB MemAvailable 为安全底线；无法守住安全线就降低并发、限制任务或停止该重任务，不擅自停止生产服务腾内存。
 
-最后实际验证 ~/.claude/CLAUDE.md 与仓库根目录 CLAUDE.md 一致、全局 Skills 可发现且校验通过、~/.claude/hooks 下 wxh hooks 已安装且 settings.json 只新增了 wxh 拥有的 PreToolUse 与 UserPromptSubmit 条目、Claude MCP 可用。只报告实际结果、冲突、备份位置和仍需人工处理的问题。
+最后实际验证 ~/.claude/CLAUDE.md 与仓库根目录 CLAUDE.md 一致、全局 Skills 可发现且校验通过、~/.claude/hooks 下 wxh hooks 已安装且 settings.json 只新增了 wxh 拥有的 PreToolUse 与 UserPromptSubmit 条目、Claude MCP 可用、desktop-commander 插件已启用且 read_multiple_files 可用。只报告实际结果、冲突、备份位置和仍需人工处理的问题。
 ```
 
 ### Claude Code 手工安装
@@ -127,6 +129,7 @@ python3 "$HOME/.wxh-dev-standard/scripts/sync-global-instructions.py" --claude
 python3 "$HOME/.wxh-dev-standard/scripts/sync-skills.py" --claude
 python3 "$HOME/.wxh-dev-standard/scripts/sync-claude-hooks.py"
 python3 "$HOME/.wxh-dev-standard/scripts/validate-skills.py"
+claude plugin install desktop-commander@claude-plugins-official
 ```
 
 Windows PowerShell：
@@ -142,6 +145,7 @@ python "$Repo\scripts\sync-global-instructions.py" --claude
 python "$Repo\scripts\sync-skills.py" --claude
 python "$Repo\scripts\sync-claude-hooks.py"
 python "$Repo\scripts\validate-skills.py"
+claude plugin install desktop-commander@claude-plugins-official
 ```
 
 `sync-claude-hooks.py` 把仓库 `hooks/` 下的脚本安装到 `~/.claude/hooks/`、仓库 `statusline.sh` 安装到 `~/.claude/statusline.sh`，并向 `~/.claude/settings.json` 安全合并四类 wxh 拥有的条目（带时间戳备份；`env`、模型、密钥等用户自有字段绝不改动）：一是 Trellis commit 门禁的 PreToolUse 条目（Trellis 项目没有活动任务时拦截 `git commit`，用户已明确豁免时使用命令前缀 `WXH_TRELLIS_BYPASS=1`）；二是 steer 提醒的 UserPromptSubmit 条目（每轮用户输入旁注入全局指令「输出与交付」「规划与验证」的精简版，对抗长会话指令衰减，思路来自 NB-Corp/gpt-with-taste，仅 Claude 端）；三是 permissions 基线——缺失时补 `defaultMode: "acceptEdits"` 与 `allow: ["Bash"]`（普通命令不再逐条确认），已有权限模式与 `allow` 列表保留，外加破坏性命令（`rm`、`git push --force`、`docker rm`、`kubectl delete`、`npm publish` 等）的 `ask` 确认列表；四是 statusLine 状态栏——左下显示 `目录 | 模型 ⎇ 分支`、右下显示 context 用量进度条（绿 <50% / 黄 50-79% / 红 ≥80%，`refreshInterval: 120` 定时刷新），指向其它 statusline（如 ccstatusline）的自有配置不会被改动。用户已有权限模式、Skill 启用选择、混合分组内的用户 hook、`ask` 条目及其它权限键保留；重复同步仅更新本库已识别 hook 和补缺失默认项。门禁是常见直接命令的工作流检查，不能代替宿主权限。
@@ -151,7 +155,7 @@ python "$Repo\scripts\validate-skills.py"
 直接说：
 
 ```text
-更新我的 wxh-dev-standard Claude Code 全局开发环境。只更新 Claude Code：安全拉取仓库，同步根目录 CLAUDE.md 到 ~/.claude/CLAUDE.md，同步 ~/.claude/skills，重新运行 sync-claude-hooks.py 更新全局 hooks，运行 Skill 校验并检查 Claude MCP 基线变化；不要修改 Codex 配置。
+更新我的 wxh-dev-standard Claude Code 全局开发环境。只更新 Claude Code：安全拉取仓库，同步根目录 CLAUDE.md 到 ~/.claude/CLAUDE.md，同步 ~/.claude/skills，重新运行 sync-claude-hooks.py 更新全局 hooks，运行 Skill 校验并检查 Claude MCP 基线与官方插件基线（desktop-commander）变化；不要修改 Codex 配置。
 ```
 
 手工更新：
@@ -162,6 +166,7 @@ python3 "$HOME/.wxh-dev-standard/scripts/sync-global-instructions.py" --claude
 python3 "$HOME/.wxh-dev-standard/scripts/sync-skills.py" --claude
 python3 "$HOME/.wxh-dev-standard/scripts/sync-claude-hooks.py"
 python3 "$HOME/.wxh-dev-standard/scripts/validate-skills.py"
+claude plugin install desktop-commander@claude-plugins-official
 ```
 
 ## ZCode

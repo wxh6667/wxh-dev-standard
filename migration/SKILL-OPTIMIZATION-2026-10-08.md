@@ -85,3 +85,19 @@ Python/Bash 语法及 git diff --check 通过。四端分发测试证明路径�
 ## 2026-10-10 复审
 
 按用户"不丢能力"要求，三份全局指令在"工具与 Skill"段加回一段精简的 Skill 主动触发指引（一句总则 + 6 个高频 skill 点名），恢复 e052a92 建立的触发兜底——第三方模型对"先调 Skill 再回答"遵从度弱，需要全局指令点名兜底，本次精简不应把它一并去掉。同期 `mcp/codex.config.fragment.toml` 补 serena 与 sequential-thinking、移除 codegraph，与 Claude 基线对齐；`mcp/README.md` 相应更新。四端指令与 MCP 基线经 `validate-skills.py` 和 `test-sync.py` 验证后提交推送。
+
+## 2026-10-26 同步、巡检与可维护性补强
+
+仓库从 `6b31a12` fast-forward 到 `e8bda2e866294675718e3d2eb75700c5dd4c2ef0`。本轮未提交工作先经 stash 保护再恢复，没有覆盖已有修改。
+
+- 根目录 `AGENTS.md` 首行后的正文成为共享指令唯一来源；`render-global-instructions.py` 生成或只读检查 Claude/ZCode 文件。`ai-context-init` 与最新 Trellis 计划确认门对齐。
+- 新增 stdlib-only `doctor.py`：只读检查缓存 Git、已安装四端指令、Skill 链接、Claude/ZCode 配置、MCP 命令参数与 env 键名及 sandbox 依赖；不 fetch、不启动 MCP/hooks、不自动修复、不输出 env 值。
+- ZCode 在任何写入前检查 references/templates 链接冲突，冲突返回非零；正确链接重复同步保持幂等。
+- Claude 权限 ask 基线统一官方等价写法、去重并补本机已有的高风险确认项；裸 Bash allow 存在时只清理冗余 Bash 子规则。新增渐进 sandbox 缺失键合并及沙箱逃逸参数确认，不改 defaultMode、模型、env、插件或已有用户选择。
+- Skill 校验改用 PyYAML，检查真实 YAML 类型、folded description、跨端调用政策及 Markdown 链接；缺依赖明确失败。新增 10 个触发/不触发静态样例，没有发起模型评测。
+- `vendor-lock.json` 记录实际 Git 基线和逐文件比较。Cloudflare 为 339 个一致文件、7 个本地修订、2 个本地新增文件；Matt Pocock 为 65 个一致文件、27 个本地修订、15 个归属 7 个未解决来源 Skill 的本地文件；app-shell-ui 为 108 个一致文件、1 个本地修订。没有升级或覆盖 vendor 内容。
+- 新增最小 GitHub Actions 工作流和开发依赖文件，更新 README、INSTALL、MCP 与 vendor 维护说明。Actions 使用已核实的完整 commit SHA；未推送前不代表线上 CI 已运行。
+
+本机 Claude 指令与 settings 已通过现有同步脚本应用，原文件分别备份为 `/root/.claude/CLAUDE.md.bak-wxh-20261026-162208` 和 `/root/.claude/settings.json.bak-wxh-20261026-162208`。14 个 Cloudflare Skill 的 off 选择、app-shell-ui 的 name-only、`acceptEdits` 及其他用户字段保留。未修改私有 MCP 配置和 `settings.local.json`。
+
+验证覆盖临时 HOME 四端安装与重复运行、冲突零写入、doctor 漂移与异常输入、YAML 负例和来源 lock 结构；实际命令与最终结果以当轮终端记录为准。Linux 当前缺少 `bwrap` 与 `socat`，所以 sandbox 配置已写入但运行隔离未验证；模型触发行为和各宿主新会话行为仍需实际使用验证。

@@ -3,6 +3,8 @@
 本目录是第三方 skill 的 vendored 快照，一并入仓以便其他主机离线一键安装。
 保留上游快照的来源与日期。本仓库允许有记录的本地策略修订；更新上游时逐项合并，不能整目录覆盖本地修订。当前修订记录见 ../migration/SKILL-OPTIMIZATION-2026-10-08.md。
 
+2026-10-26 的逐文件核验结果见 `vendor-lock.json`：记录精确基线 commit、当前上游 HEAD、路径映射、本地修改和无法确认来源的 Skill。`mixed` 表示快照包含本地修订，不表示来源不完整；`local_only_unresolved_skills` 仍明确保留来源未知状态。基线用于比较和恢复，不表示要把本地文件重置成该版本。
+
 | 目录 | 上游 | 同步日期 | 说明 |
 |------|------|----------|------|
 | `cloudflare/` | https://github.com/cloudflare/skills | 2026-09-17 | 全量 14 个，含本地此前缺失的 `nextjs-on-cloudflare` |
@@ -13,7 +15,8 @@
 
 ```bash
 git clone --depth 1 <上游地址> /tmp/<name>
-# 先比较上游新版本、当前快照与本地策略修订，再合并相应文件
+# 先按 vendor-lock.json 的 base_commit 获取旧基线并比较本地修订
+# 再获取选定的新上游版本，逐文件合并，不能整目录覆盖
 # 保留本地触发、授权、引用及各端元数据差异，运行 validate-skills.py 和 test-sync.py
-# 最后更新本表同步日期
+# 最后更新 lock 的基线、上游 HEAD、路径映射与本地修订，以及本表同步日期
 ```

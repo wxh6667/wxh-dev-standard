@@ -148,7 +148,7 @@ python "$Repo\scripts\validate-skills.py"
 claude plugin install desktop-commander@claude-plugins-official
 ```
 
-`sync-claude-hooks.py` 把仓库 `hooks/` 下的脚本安装到 `~/.claude/hooks/`、仓库 `statusline.sh` 安装到 `~/.claude/statusline.sh`，并向 `~/.claude/settings.json` 安全合并四类 wxh 拥有的条目（带时间戳备份；`env`、模型、密钥等用户自有字段绝不改动）：一是 Trellis commit 门禁的 PreToolUse 条目（Trellis 项目没有活动任务时拦截 `git commit`，用户已明确豁免时使用命令前缀 `WXH_TRELLIS_BYPASS=1`）；二是 steer 提醒的 UserPromptSubmit 条目（每轮用户输入旁注入全局指令「输出与交付」「规划与验证」的精简版，对抗长会话指令衰减，思路来自 NB-Corp/gpt-with-taste，仅 Claude 端）；三是 permissions 基线——缺失时补 `defaultMode: "acceptEdits"` 与 `allow: ["Bash"]`（普通命令不再逐条确认），已有权限模式与 `allow` 列表保留，外加破坏性命令（`rm`、`git push --force`、`docker rm`、`kubectl delete`、`npm publish` 等）的 `ask` 确认列表；四是 statusLine 状态栏——左下显示 `目录 | 模型 ⎇ 分支`、右下显示 context 用量进度条（绿 <50% / 黄 50-79% / 红 ≥80%，`refreshInterval: 120` 定时刷新），指向其它 statusline（如 ccstatusline）的自有配置不会被改动。用户已有权限模式、Skill 启用选择、混合分组内的用户 hook、`ask` 条目及其它权限键保留；重复同步仅更新本库已识别 hook 和补缺失默认项。门禁是常见直接命令的工作流检查，不能代替宿主权限。
+`sync-claude-hooks.py` 把仓库 `hooks/` 下的脚本安装到 `~/.claude/hooks/`、仓库 `statusline.sh` 安装到 `~/.claude/statusline.sh`，并向 `~/.claude/settings.json` 安全合并四类 wxh 拥有的条目（带时间戳备份；`env`、模型、密钥等用户自有字段绝不改动）：一是 Trellis commit 门禁的 PreToolUse 条目（Trellis 项目没有活动任务时拦截 `git commit`，用户已明确豁免时使用命令前缀 `WXH_TRELLIS_BYPASS=1`）；二是 steer 提醒的 UserPromptSubmit 条目（每轮用户输入旁注入全局指令「输出与交付」「规划与验证」的精简版，对抗长会话指令衰减，思路来自 NB-Corp/gpt-with-taste，仅 Claude 端）；三是 permissions 基线——缺失时补 `defaultMode: "acceptEdits"` 与 `allow: ["Bash"]`（普通命令不再逐条确认），已有权限模式与 `allow` 列表保留，外加破坏性命令（`rm`、`git push --force`、`docker rm`、`kubectl delete`、`npm publish` 等）的 `ask` 确认列表；四是 statusLine 状态栏——左下显示 `目录 | 模型 ⎇ 分支`、右下显示 context 用量进度条（绿 <50% / 黄 50-79% / 红 ≥80%，`refreshInterval: 120` 定时刷新），指向其它 statusline（如 ccstatusline）的自有配置不会被改动。用户已有权限模式、Skill 启用选择、混合分组内的用户 hook、`ask` 条目及其它权限键保留；裸 `Bash` allow 存在时，仅移除已被它覆盖的 Bash allow 子规则，非 Bash allow 保留。重复同步仅更新本库已识别 hook 和补缺失默认项。sandbox 默认启用但不自动批准命令，保留经确认的 unsandboxed 重试且暂不限网络；已有 sandbox 值不覆盖，Linux 缺少 `bubblewrap`/`socat` 时配置不代表隔离可用。门禁是常见直接命令的工作流检查，不能代替宿主权限。
 
 ### Claude Code 更新
 
@@ -291,10 +291,14 @@ python3 "$HOME/.wxh-dev-standard/scripts/validate-skills.py"
 
 ## 共享源码与分端验证
 
-三份指令使用同一核心约束，Codex 与 PI 共用 AGENTS.md；各端加载文件仍分别同步。`sync-global-instructions.py --all` 只同步四端指令，`--zcode` 可仅同步 ZCode 指令；完整 ZCode 安装仍使用 sync-zcode.py。全局指令文件是宿主加载的长期规则，不代替系统层权限。
+共享正文只编辑仓库根目录 `AGENTS.md` 首行后的内容，再运行 `python3 scripts/render-global-instructions.py --write` 生成 `CLAUDE.md` 和 `zcode/AGENTS.md`；更新已有安装时运行 `--check`。各端加载文件仍分别同步，`sync-global-instructions.py --all` 只同步四端指令，`--zcode` 可仅同步 ZCode 指令；完整 ZCode 安装仍使用 sync-zcode.py。全局指令文件是宿主加载的长期规则，不代替系统层权限。
 
 Skill 正文共享，各端启用与权限配置分别保留。Claude 的 off 会同时隐藏并禁止调用，不能当成“仅手动”；缺失配置使用 on/name-only，已有 off 选择仍保留。Claude 的 disable-model-invocation 与 Codex openai.yaml 的调用政策不是跨端通用开关；ZCode/PI 需按实际版本确认加载与显式调用行为。23 个 Skill 在 Claude/Codex 设置为显式调用，其余允许匹配，实际还受各端用户启用配置影响。
 
-修改后运行 `python3 scripts/validate-skills.py` 与 `python3 scripts/test-sync.py`。测试使用临时 HOME，不启动 MCP、不调用外部账户，也不修改真实用户设置。它验证分发与合并，不证明模型实际行为已通过；新会话中还需确认实际加载，并用典型任务检查误触发、重复确认和验证遗漏。
+修改前先安装校验依赖：`python3 -m pip install -r requirements-dev.txt`。修改后运行 `python3 scripts/render-global-instructions.py --check`、`python3 scripts/validate-skills.py` 与 `python3 scripts/test-sync.py`。测试使用临时 HOME，不启动 MCP、不调用外部账户，也不修改真实用户设置。它验证分发与合并，不证明模型实际行为已通过；新会话中还需确认实际加载，并用典型任务检查误触发、重复确认和验证遗漏。
+
+安装或更新后运行 `python3 scripts/doctor.py`：默认只读，不联网、不启动 MCP/hooks，Git 只报告缓存远端状态；检查额外 Skill 不会误报，Cloudflare off 等已有选择保留。Linux sandbox 需要 `bubblewrap` 和 `socat`，缺失时 doctor 警告，配置写入不等于隔离生效。当前渐进配置保留确认的 unsandboxed 重试且不收紧网络，后续应按实际工作流验证后再提高限制。
+
+ZCode 的 references/templates 链接冲突会在写入任何配置前返回非零，保留原目标；处理冲突后重新运行同步。
 
 同步遇到 settings.json/config.json 软链且需要改写时明确拒绝，保留共享目标；异常 hooks/permissions 结构也明确报错，不替换为默认内容。

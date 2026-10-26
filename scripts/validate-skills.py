@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
-"""Check discovery fields, invocation consistency and concrete Markdown links.
-
-This lightweight check does not replace a host's full YAML/schema validation.
-"""
+"""Check discovery fields, invocation consistency and concrete Markdown links."""
 from pathlib import Path
 import re
 import sys
 from urllib.parse import unquote, urlsplit
+
+try:
+    import yaml
+except ImportError:
+    yaml = None
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -19,23 +21,21 @@ def collect(source: Path) -> list[Path]:
     return sorted(p for p in source.iterdir() if p.is_dir())
 
 
-def field(frontmatter: str, key: str) -> str | None:
-    match = re.search(rf"(?m)^{re.escape(key)}:[ \t]*(.*)$", frontmatter)
-    if not match:
+def parse_yaml(text: str, label: str, errors: list[str]) -> dict | None:
+    try:
+        value = yaml.safe_load(text)
+    except yaml.YAMLError as exc:
+        errors.append(f"{label}: invalid YAML: {exc}")
         return None
-    value = match.group(1).strip()
-    if value in {">", "|", ">-", "|-"}:
-        lines = []
-        for line in frontmatter[match.end():].splitlines():
-            if line and not line[0].isspace():
-                break
-            if line.strip():
-                lines.append(line.strip())
-        return " ".join(lines)
-    return value.strip(" \t'\"")
+    if not isinstance(value, dict):
+        errors.append(f"{label}: YAML must be an object")
+        return None
+    return value
 
 
 def validate(root: Path = ROOT) -> tuple[int, list[str]]:
+    if yaml is None:
+        return 0, ["PyYAML is required; install requirements-dev.txt"]
     errors = []
     directories = collect(root / "skills")
     vendor = root / "skills-vendor"
@@ -59,30 +59,43 @@ def validate(root: Path = ROOT) -> tuple[int, list[str]]:
         if end < 0:
             errors.append(f"{label}: unclosed YAML frontmatter")
             continue
-        frontmatter = text[4:end]
-        name = field(frontmatter, "name")
-        description = field(frontmatter, "description")
-        if name != directory.name or not name or not re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", name):
-            errors.append(f"{label}: name must match directory and use lowercase hyphenated words")
+        frontmatter = parse_yaml(text[4:end], label, errors)
+        if frontmatter is None:
+            continue
+        name = frontmatter.get("name")
+        description = frontmatter.get("description")
+        if not isinstance(name, str) or name != directory.name or not re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", name):
+            errors.append(f"{label}: name must be a string matching the directory in lowercase hyphenated words")
+            name = None
         if name in names:
             errors.append(f"{label}: duplicate skill name {name}")
-        names.add(name)
-        if not description:
-            errors.append(f"{label}: missing description")
+        if name is not None:
+            names.add(name)
+        if not isinstance(description, str) or not description.strip():
+            errors.append(f"{label}: description must be a non-empty string")
         elif len(description) > 1024:
             errors.append(f"{label}: description exceeds 1024 characters (ZCode/Agent Skills limit)")
-        disabled = field(frontmatter, "disable-model-invocation")
-        if disabled not in {None, "true", "false"}:
-            errors.append(f"{label}: disable-model-invocation must be true or false")
+        disabled = frontmatter.get("disable-model-invocation")
+        if disabled is not None and not isinstance(disabled, bool):
+            errors.append(f"{label}: disable-model-invocation must be a YAML boolean")
         metadata = directory / "agents" / "openai.yaml"
+        policy = None
         if metadata.is_file():
-            meta = metadata.read_text(encoding="utf-8")
-            policy = re.search(r"(?m)^[ \t]*allow_implicit_invocation:[ \t]*(\S+)[ \t]*$", meta)
-            if policy and policy.group(1) not in {"true", "false"}:
-                errors.append(f"{metadata.relative_to(root)}: invalid invocation boolean")
-            elif (disabled == "true") != bool(policy and policy.group(1) == "false"):
+            meta = parse_yaml(metadata.read_text(encoding="utf-8"), str(metadata.relative_to(root)), errors)
+            if meta is not None:
+                policy_section = meta.get("policy", {})
+                if not isinstance(policy_section, dict):
+                    errors.append(f"{metadata.relative_to(root)}: policy must be an object")
+                else:
+                    policy = policy_section.get("allow_implicit_invocation")
+                if policy is not None and not isinstance(policy, bool):
+                    errors.append(f"{metadata.relative_to(root)}: allow_implicit_invocation must be a YAML boolean")
+                    policy = None
+            if disabled is True and policy is None:
+                errors.append(f"{label}: Codex metadata must set allow_implicit_invocation: false")
+            elif policy is not None and (disabled is True) != (policy is False):
                 errors.append(f"{label}: Claude and Codex explicit invocation settings disagree")
-        elif disabled == "true":
+        elif disabled is True:
             errors.append(f"{label}: explicit invocation needs agents/openai.yaml for Codex")
 
         # Check literal links in instructions, not examples inside fenced code.

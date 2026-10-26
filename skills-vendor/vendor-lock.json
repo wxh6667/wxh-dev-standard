@@ -1,0 +1,106 @@
+{
+  "checked_at": "2026-10-26",
+  "method": "Read-only Git history and byte comparison; local skills were not upgraded. Base commits explain existing files through the recorded local changes; they are not claims that every upstream file was vendored.",
+  "vendors": {
+    "cloudflare": {
+      "repo": "https://github.com/cloudflare/skills",
+      "base_commit": "b052c32bab7dd493513260228a36c88294f343f1",
+      "status": "mixed",
+      "upstream_prefix": "skills/",
+      "upstream_head": "86505e44f87d801aa1864a3c4109e9a8ae5c409f",
+      "comparison": {
+        "identical_files": 339,
+        "locally_modified_files": 7,
+        "local_only_files": 2
+      },
+      "local_modifications": [
+        "agents-sdk/SKILL.md",
+        "cloudflare/SKILL.md",
+        "cloudflare-email-service/SKILL.md",
+        "durable-objects/SKILL.md",
+        "nextjs-on-cloudflare/SKILL.md",
+        "turnstile-spin/SKILL.md",
+        "web-perf/SKILL.md",
+        "cloudflare/references/product-map.md (local only)",
+        "web-perf/references/audit-methods.md (local only)"
+      ],
+      "file_anchors": {
+        "skills/web-perf/SKILL.md": "3af2c77450c91af61384887def098fbfd247bbad"
+      }
+    },
+    "mattpocock": {
+      "repo": "https://github.com/mattpocock/skills",
+      "base_commit": "321658273cb1d20b76026717d027d505790106d4",
+      "status": "mixed",
+      "upstream_prefix": "skills/<category>/; local category directories were flattened",
+      "upstream_head": "5beb35b040e3de97e54fa9e386d7e42d15c295c2",
+      "comparison": {
+        "identical_files": 65,
+        "locally_modified_files": 27,
+        "local_only_files": 15
+      },
+      "local_modifications": [
+        "ask-matt/SKILL.md",
+        "codebase-design/DESIGN-IT-TWICE.md",
+        "codebase-design/SKILL.md",
+        "diagnosing-bugs/SKILL.md",
+        "domain-modeling/CONTEXT-FORMAT.md",
+        "domain-modeling/SKILL.md",
+        "git-guardrails-claude-code/SKILL.md",
+        "git-guardrails-claude-code/scripts/block-dangerous-git.sh",
+        "grilling/SKILL.md",
+        "implement/SKILL.md",
+        "improve-codebase-architecture/SKILL.md",
+        "prototype/SKILL.md",
+        "research/SKILL.md",
+        "resolving-merge-conflicts/SKILL.md",
+        "setup-matt-pocock-skills/SKILL.md",
+        "setup-matt-pocock-skills/domain.md",
+        "setup-pre-commit/SKILL.md",
+        "tdd/SKILL.md",
+        "to-spec/SKILL.md",
+        "to-tickets/SKILL.md",
+        "wait-what/SKILL.md",
+        "wizard/SKILL.md",
+        "wizard/template.sh",
+        "writing-for-agents/SKILL-MECHANICS.md",
+        "writing-for-agents/SKILL.md",
+        "writing-fragments/SKILL.md",
+        "writing-shape/SKILL.md"
+      ],
+      "local_only_unresolved_skills": [
+        "design-an-interface",
+        "edit-article",
+        "obsidian-vault",
+        "qa",
+        "request-refactor-plan",
+        "ubiquitous-language",
+        "writing-great-skills"
+      ],
+      "excluded_upstream_skills": [
+        "grill-me",
+        "code-review",
+        "implement-spec",
+        "pr",
+        "retro"
+      ],
+      "notes": "The base explains all 107 local files by identical content, a recorded local modification, or one of the seven unresolved local-only skills. It does not assert an exact origin for those seven skills. Future updates must map category paths and merge local policy changes file by file."
+    },
+    "app-shell-ui": {
+      "repo": "https://github.com/yg2224/app-shell-ui",
+      "base_commit": "24a6095b79d832770e2a48e31d7c65915bbb5263",
+      "status": "mixed",
+      "upstream_prefix": "",
+      "upstream_head": "24a6095b79d832770e2a48e31d7c65915bbb5263",
+      "comparison": {
+        "identical_files": 108,
+        "locally_modified_files": 1,
+        "local_only_files": 0
+      },
+      "local_modifications": [
+        "SKILL.md"
+      ],
+      "notes": "All 109 local paths exist in this snapshot. Assets and references are retained; the instruction body has local policy edits."
+    }
+  }
+}

@@ -11,6 +11,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+import unittest.mock
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -29,9 +30,43 @@ class SyncTests(unittest.TestCase):
         self.addCleanup(self.output.__exit__, None, None, None)
 
     def test_shared_instruction_semantics(self):
-        expected = (ROOT / "AGENTS.md").read_text().split("\n", 1)[1]
-        for relative in ("CLAUDE.md", "zcode/AGENTS.md"):
-            self.assertEqual((ROOT / relative).read_text().split("\n", 1)[1], expected)
+        result = subprocess.run([sys.executable, str(ROOT / "scripts/render-global-instructions.py"), "--check"], capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        module = load("scripts/render-global-instructions.py")
+        body = (ROOT / "AGENTS.md").read_text().split("\n", 1)[1]
+        for target, title in module.TARGETS.items():
+            self.assertEqual(target.read_text(), module.render(title, body))
+
+    def test_renderer_check_detects_stale_output(self):
+        module = load("scripts/render-global-instructions.py")
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp) / "CLAUDE.md"
+            target.write_text("stale")
+            module.TARGETS = {target: "# CLAUDE.md"}
+            with unittest.mock.patch.object(sys, "argv", ["render", "--check"]):
+                self.assertEqual(module.main(), 1)
+            self.assertEqual(target.read_text(), "stale")
+
+    def test_permission_cleanup_and_sandbox_merge(self):
+        module = load("scripts/sync-claude-hooks.py")
+        settings = {"permissions": {"allow": ["Bash", "Read", "Bash(ls *)", "Bash(git status*)"],
+                                    "ask": ["Bash(rm:*)", "Bash(rm *)", "Read(custom)"]},
+                    "sandbox": {"enabled": False}}
+        module.sync_permissions(settings)
+        module.sync_sandbox(settings)
+        self.assertEqual(settings["permissions"]["allow"], ["Bash", "Read"])
+        self.assertEqual(settings["permissions"]["ask"][:2], ["Bash(rm *)", "Read(custom)"])
+        self.assertIn("Bash(dangerouslyDisableSandbox:true)", settings["permissions"]["ask"])
+        self.assertFalse(settings["sandbox"]["enabled"])
+        self.assertFalse(settings["sandbox"]["autoAllowBashIfSandboxed"])
+        self.assertTrue(settings["sandbox"]["allowUnsandboxedCommands"])
+        before = copy.deepcopy(settings)
+        module.sync_permissions(settings)
+        module.sync_sandbox(settings)
+        self.assertEqual(settings, before)
+        custom = {"permissions": {"allow": ["Read", "Bash(ls *)"]}}
+        module.sync_permissions(custom)
+        self.assertEqual(custom["permissions"]["allow"], ["Read", "Bash(ls *)"])
 
     def test_claude_choices_and_idempotence(self):
         module = load("scripts/sync-claude-hooks.py")
@@ -42,7 +77,7 @@ class SyncTests(unittest.TestCase):
         module.sync_skill_overrides(settings)
         module.sync_settings_keys(settings)
         self.assertEqual(settings["permissions"]["defaultMode"], "default")
-        self.assertIn("Bash(custom:*)", settings["permissions"]["ask"])
+        self.assertIn("Bash(custom *)", settings["permissions"]["ask"])
         self.assertEqual(settings["permissions"]["allow"], ["Read"])
         self.assertEqual(settings["skillOverrides"]["cloudflare"], "on")
         self.assertEqual(settings["skillOverrides"]["app-shell-ui"], "off")
@@ -98,9 +133,11 @@ class SyncTests(unittest.TestCase):
 
     def test_invalid_settings_are_rejected(self):
         module = load("scripts/sync-claude-hooks.py")
-        for value in ({"permissions": []}, {"permissions": {"ask": "custom"}}, {"permissions": {"ask": [1]}}):
+        for value in ({"permissions": []}, {"permissions": {"ask": "custom"}}, {"permissions": {"ask": [1]}}, {"permissions": {"allow": "Bash"}}, {"permissions": {"allow": [1]}}):
             with self.assertRaises(SystemExit):
                 module.sync_permissions(value)
+        with self.assertRaises(SystemExit):
+            module.sync_sandbox({"sandbox": True})
         with self.assertRaises(SystemExit):
             module.sync_skill_overrides({"skillOverrides": []})
         for value in ({"hooks": []}, {"hooks": {"PreToolUse": {"user_value": "keep"}}}):
@@ -125,6 +162,18 @@ class SyncTests(unittest.TestCase):
         before = copy.deepcopy(config)
         module.merge_hooks(config)
         self.assertEqual(config, before)
+
+    def test_zcode_link_conflict_fails_before_writes(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            home = Path(tmp)
+            (home / ".agents/references").mkdir(parents=True)
+            (home / ".agents/references/user.txt").write_text("keep")
+            env = dict(os.environ, HOME=tmp)
+            result = subprocess.run([sys.executable, str(ROOT / "scripts/sync-zcode.py")], env=env, capture_output=True, text=True)
+            self.assertEqual(result.returncode, 1)
+            self.assertIn("CONFLICT", result.stdout)
+            self.assertFalse((home / ".zcode").exists())
+            self.assertEqual((home / ".agents/references/user.txt").read_text(), "keep")
 
     def test_instruction_sync_does_not_write_through_symlink(self):
         module = load("scripts/sync-global-instructions.py")
@@ -239,6 +288,99 @@ class SyncTests(unittest.TestCase):
                 self.assertEqual(external.read_text(), '{"user_field": "keep"}')
                 self.assertTrue(target.is_symlink())
 
+    def test_doctor_clean_install_drift_and_local_choices(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            home = Path(tmp)
+            env = dict(os.environ, HOME=tmp)
+            commands = [
+                ["scripts/sync-global-instructions.py", "--all"],
+                ["scripts/sync-skills.py", "--all"],
+                ["scripts/sync-claude-hooks.py"],
+                ["scripts/sync-zcode.py"],
+            ]
+            for command in commands:
+                result = subprocess.run([sys.executable, str(ROOT / command[0]), *command[1:]], env=env, capture_output=True, text=True)
+                self.assertEqual(result.returncode, 0, result.stderr)
+            baseline = json.loads((ROOT / "mcp/claude.mcp.example.json").read_text())
+            (home / ".claude.json").write_text(json.dumps(baseline))
+            claude_servers = json.loads((home / ".claude.json").read_text())["mcpServers"]
+            claude_servers["context7"].pop("env", None)
+            (home / ".claude.json").write_text(json.dumps({"mcpServers": claude_servers}))
+            settings_path = home / ".claude/settings.json"
+            settings = json.loads(settings_path.read_text())
+            settings["skillOverrides"].update({name: "off" for name in settings["skillOverrides"] if name != "app-shell-ui"})
+            settings_path.write_text(json.dumps(settings))
+            command = [sys.executable, str(ROOT / "scripts/doctor.py"), "--skip-repo"]
+            before = settings_path.read_bytes()
+            result = subprocess.run(command, env=env, capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertEqual(settings_path.read_bytes(), before)
+            (home / ".claude/skills/user-owned").mkdir()
+            result = subprocess.run(command, env=env, capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0, result.stdout)
+            (home / ".claude/CLAUDE.md").write_text("stale")
+            result = subprocess.run(command, env=env, capture_output=True, text=True)
+            self.assertEqual(result.returncode, 1)
+            self.assertIn("claude instructions differs", result.stdout)
+            (home / ".claude/CLAUDE.md").write_bytes((ROOT / "CLAUDE.md").read_bytes())
+            mcp = json.loads((home / ".claude.json").read_text())
+            mcp["mcpServers"]["serena"] = {"command": "serena", "args": ["start-mcp-server", "--context=claude-code", "--project-from-cwd"]}
+            (home / ".claude.json").write_text(json.dumps(mcp))
+            result = subprocess.run(command, env=env, capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0, result.stdout)
+            self.assertIn("direct-binary local override", result.stdout)
+            mcp["mcpServers"]["serena"]["args"].append("--dangerous-unknown")
+            (home / ".claude.json").write_text(json.dumps(mcp))
+            result = subprocess.run(command, env=env, capture_output=True, text=True)
+            self.assertEqual(result.returncode, 1)
+            self.assertIn("MCP server serena differs", result.stdout)
+
+    def test_doctor_detects_skill_and_hook_drift(self):
+        module = load("scripts/doctor.py")
+        with tempfile.TemporaryDirectory() as tmp:
+            home = Path(tmp)
+            (home / ".claude/skills").mkdir(parents=True)
+            (home / ".claude/settings.json").write_text("{}")
+            doctor = module.Doctor(home, skip_repo=True)
+            doctor.check_skills()
+            self.assertGreater(doctor.failures, 0)
+            settings = {"hooks": {}}
+            merged = copy.deepcopy(settings)
+            doctor.claude.register_settings("gate-commit-trellis.py", merged)
+            self.assertNotEqual(settings, merged)
+
+    def test_doctor_rejects_invalid_settings_and_mcp_types(self):
+        module = load("scripts/doctor.py")
+        with tempfile.TemporaryDirectory() as tmp:
+            home = Path(tmp)
+            (home / ".claude").mkdir()
+            settings = home / ".claude/settings.json"
+            settings.write_text('{"permissions": {"ask": "invalid"}}')
+            doctor = module.Doctor(home, skip_repo=True)
+            doctor.check_claude()
+            self.assertGreater(doctor.failures, 0)
+            before = settings.read_bytes()
+            doctor.check_claude()
+            self.assertEqual(settings.read_bytes(), before)
+            doctor = module.Doctor(home, skip_repo=True)
+            doctor.compare_mcp(home / ".claude.json", [], {"serena": {}})
+            self.assertEqual(doctor.failures, 1)
+
+    def test_vendor_lock_paths_counts_and_commit_ids(self):
+        lock = json.loads((ROOT / "skills-vendor/vendor-lock.json").read_text())
+        for vendor, entry in lock["vendors"].items():
+            with self.subTest(vendor=vendor):
+                for key in ("base_commit", "upstream_head"):
+                    self.assertEqual(len(entry[key]), 40)
+                    int(entry[key], 16)
+                for relative in entry["local_modifications"]:
+                    path = relative.removesuffix(" (local only)")
+                    self.assertTrue((ROOT / "skills-vendor" / vendor / path).is_file(), path)
+                for name in entry.get("local_only_unresolved_skills", []):
+                    self.assertTrue((ROOT / "skills-vendor" / vendor / name / "SKILL.md").is_file())
+                files = [path for path in (ROOT / "skills-vendor" / vendor).rglob("*") if path.is_file()]
+                self.assertEqual(sum(entry["comparison"].values()), len(files))
+
     def test_validator_reports_real_failures(self):
         module = load("scripts/validate-skills.py")
         with tempfile.TemporaryDirectory() as tmp:
@@ -253,6 +395,49 @@ class SyncTests(unittest.TestCase):
             self.assertTrue(any("1024" in error for error in module.validate(root)[1]))
             (skill / "SKILL.md").write_text("---\nname: example\ndescription: example\ndisable-model-invocation: true\n---\n")
             self.assertTrue(any("openai.yaml" in error for error in module.validate(root)[1]))
+
+    def test_validator_parses_yaml_types_and_scalars(self):
+        module = load("scripts/validate-skills.py")
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            skill = root / "skills/example"
+            skill.mkdir(parents=True)
+            path = skill / "SKILL.md"
+            path.write_text("---\nname: example\ndescription: >\n  folded description\n  over two lines\n---\n")
+            self.assertEqual(module.validate(root), (1, []))
+            for text in (
+                "---\nname: example\ndescription: [unclosed\n---\n",
+                "---\nname: on\ndescription: example\n---\n",
+                "---\nname: example\ndescription: example\ndisable-model-invocation: \"true\"\n---\n",
+            ):
+                path.write_text(text)
+                self.assertTrue(module.validate(root)[1], text)
+            (skill / "agents").mkdir()
+            path.write_text("---\nname: example\ndescription: example\ndisable-model-invocation: true\n---\n")
+            (skill / "agents/openai.yaml").write_text("interface:\n  display_name: Example\n")
+            self.assertTrue(any("allow_implicit_invocation: false" in error for error in module.validate(root)[1]))
+            path.write_text("---\nname: example\ndescription: example\n---\n")
+            (skill / "agents/openai.yaml").write_text("policy:\n  allow_implicit_invocation: \"false\"\n")
+            self.assertTrue(any("YAML boolean" in error for error in module.validate(root)[1]))
+
+    def test_validator_missing_dependency_is_explicit(self):
+        result = subprocess.run([sys.executable, "-S", str(ROOT / "scripts/validate-skills.py")], capture_output=True, text=True)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("PyYAML is required", result.stdout)
+
+    def test_skill_eval_cases_reference_existing_skills(self):
+        path = ROOT / "references/skill-eval-cases.json"
+        cases = json.loads(path.read_text())
+        self.assertIsInstance(cases, list)
+        self.assertGreaterEqual(len(cases), 6)
+        ids = set()
+        skills = {source.name for source in load("scripts/sync-skills.py").skill_dirs()}
+        for case in cases:
+            self.assertNotIn(case["id"], ids)
+            ids.add(case["id"])
+            self.assertIn(case["skill"], skills)
+            self.assertIsInstance(case["should_trigger"], bool)
+            self.assertTrue(case["prompt"].strip())
 
     def test_git_guard_checks_commands_not_quoted_text(self):
         script = ROOT / "skills-vendor/mattpocock/git-guardrails-claude-code/scripts/block-dangerous-git.sh"

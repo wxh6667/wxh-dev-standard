@@ -1,0 +1,62 @@
+[
+  {
+    "id": "code-review-local-diff",
+    "skill": "code-review",
+    "should_trigger": true,
+    "prompt": "审查当前分支相对 main 的本地 diff，找出会导致错误提交的问题。"
+  },
+  {
+    "id": "code-review-not-feature-design",
+    "skill": "code-review",
+    "should_trigger": false,
+    "prompt": "给这个尚未开始实现的新功能设计接口，不涉及现有变更审查。"
+  },
+  {
+    "id": "context7-versioned-api",
+    "skill": "context7-docs",
+    "should_trigger": true,
+    "prompt": "核对当前安装版本 Next.js 的 middleware 配置方式，以官方文档为准。"
+  },
+  {
+    "id": "context7-not-local-logic",
+    "skill": "context7-docs",
+    "should_trigger": false,
+    "prompt": "阅读这个仓库里的纯 Python 函数，解释它为什么返回空列表，不涉及第三方 API。"
+  },
+  {
+    "id": "github-research-known-error",
+    "skill": "github-solution-research",
+    "should_trigger": true,
+    "prompt": "这个开源 CLI 升级后报同样错误，查上游 issue 和已有修复方案再处理。"
+  },
+  {
+    "id": "ai-context-new-project",
+    "skill": "ai-context-init",
+    "should_trigger": true,
+    "prompt": "刚进入这个准备修改的陌生工程项目，先检查项目级 AI 上下文和 Trellis 是否完整。"
+  },
+  {
+    "id": "ai-context-not-global-config",
+    "skill": "ai-context-init",
+    "should_trigger": false,
+    "prompt": "维护主目录里的全局 Claude 配置，不进入业务项目初始化流程。"
+  },
+  {
+    "id": "batch-records",
+    "skill": "batch-execution",
+    "should_trigger": true,
+    "prompt": "按同一转换规则批量处理这几百条数据记录，并报告失败项。"
+  },
+  {
+    "id": "instructions-long-term",
+    "skill": "write-instructions-zh",
+    "should_trigger": true,
+    "prompt": "修改这份长期 Agent 指令，保持原有有效规则并消除互相冲突的要求。"
+  },
+  {
+    "id": "instructions-not-code-review",
+    "skill": "write-instructions-zh",
+    "should_trigger": false,
+    "prompt": "只审查这段 Python 实现的运行时 bug，不修改任何提示词或 Agent 指令。"
+  }
+]

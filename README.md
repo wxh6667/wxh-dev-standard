@@ -25,7 +25,7 @@ Codex、Claude Code、ZCode 与 PI-Desktop 保留各自的指令入口、权限�
 - [`zcode/AGENTS.md`](zcode/AGENTS.md)：**ZCode 全局提示词标准源**（ZCode 用户级指令文件名为 `~/.zcode/AGENTS.md`），由 `scripts/sync-zcode.py` 同步。与 `CLAUDE.md` 同一套基础约束，仅保留 ZCode 侧真实差异（如会话任务工具名）。
 - PI-Desktop：复用根目录 [`AGENTS.md`](AGENTS.md)（与 Codex 同一份标准源），安装时同步到 `~/.pi/agent/AGENTS.md`；全局 Skills 与 Codex 共用 `~/.agents/skills`，无需单独分发；项目级指令分层读取项目根的 `AGENTS.md` / `CLAUDE.md`。
 
-四端共用同一套基础约束与重叠消解规则：这些文件都不是"只约束 wxh-dev-standard 这个仓库自身"的项目规则，而是跨项目长期行为约束；基础约束各端一致，工具与能力边界各端同款。
+四端共用同一套基础约束与重叠消解规则：这些文件都不是"只约束 wxh-dev-standard 这个仓库自身"的项目规则，而是跨项目长期行为约束；基础约束各端一致，工具与能力边界各端同款。编辑共享规则时只修改根目录 `AGENTS.md` 首行后的正文，再运行 `python3 scripts/render-global-instructions.py --write` 生成 Claude/ZCode 文件；CI 用 `--check` 防止手工修改造成漂移。
 
 ## Skills 体系（自研 13 + 第三方快照 55，共 68 个）
 
@@ -81,7 +81,9 @@ Claude Code 的 MCP 按 [`mcp/claude.mcp.example.json`](mcp/claude.mcp.example.j
 
 官方插件基线独立于 MCP 基线（`mcp/` 只收录个人自配 MCP）：`desktop-commander@claude-plugins-official`，提供 `read_multiple_files`（一次读多个文件）以及 PDF/DOCX/Excel/图片读取，替代额外的第三方 bash MCP。安装命令 `claude plugin install desktop-commander@claude-plugins-official`；安装后用 `claude plugin list` 确认 `enabled`，再 `/reload-plugins` 或重开会话使工具生效。
 
-`sync-claude-hooks.py` 额外安装用户级 hooks：Trellis commit 门禁（Trellis 项目无活动任务时拦截 `git commit`，用户已明确豁免时使用命令前缀 `WXH_TRELLIS_BYPASS=1`）；UserPromptSubmit steer 提醒（每轮用户输入旁注入全局指令「输出与交付」「规划与验证」的精简版，对抗长会话指令衰减，思路来自 [NB-Corp/gpt-with-taste](https://github.com/NB-Corp/gpt-with-taste)，仅 Claude 端注册）；permissions 仅在缺失时补 `defaultMode: "acceptEdits"` 与 `allow: ["Bash"]`（普通命令不再逐条确认），并合并破坏性命令 `ask` 列表；已有权限模式、`allow` 列表、Skill 选择和用户 hook 保留。门禁仅检查常见直接 Bash 命令，不是完整 shell 安全沙箱。
+`sync-claude-hooks.py` 额外安装用户级 hooks：Trellis commit 门禁（Trellis 项目无活动任务时拦截 `git commit`，用户已明确豁免时使用命令前缀 `WXH_TRELLIS_BYPASS=1`）；UserPromptSubmit steer 提醒（每轮用户输入旁注入全局指令「输出与交付」「规划与验证」的精简版，对抗长会话指令衰减，思路来自 [NB-Corp/gpt-with-taste](https://github.com/NB-Corp/gpt-with-taste)，仅 Claude 端注册）；permissions 仅在缺失时补 `defaultMode: "acceptEdits"` 与 `allow: ["Bash"]`（普通命令不再逐条确认），并合并破坏性命令 `ask` 列表；已有权限模式、Skill 选择和用户 hook 保留。裸 `Bash` 已覆盖所有 Bash 调用，因此同步会移除它后面的冗余 Bash allow 子规则，非 Bash allow 保留；ask 统一官方空格写法并去重。
+
+同步会补缺失的 sandbox 渐进配置：启用文件系统沙箱但不自动批准命令，允许经确认的 unsandboxed 重试，不在依赖不可用时直接失败。`Bash(dangerouslyDisableSandbox:true)` 单独要求确认。第一阶段不限制网络、不禁止 unsandboxed 重试；Linux 需要 `bubblewrap` 和 `socat`，缺失时 doctor 会警告，不能视为隔离已生效。`/root` 作为工作目录时，其下文件默认处于可写范围。Bash 文本规则和 Trellis 门禁不是完整安全边界，包装器、重定向和解释器仍需权限与沙箱共同约束。
 
 ## ZCode 安装
 
@@ -141,7 +143,18 @@ PI-Desktop 指令单独同步：
 更新我的 wxh-dev-standard PI-Desktop 全局开发环境。
 ```
 
-维护流程只同步选定端的指令和配置，不覆盖其他端设置；共享 Skill 源码更新会同时作用于现有软链。仅同步四端指令可运行 `scripts/sync-global-instructions.py --all`（包含 ZCode，不安装 MCP 或 hooks）。修改后运行 `python3 scripts/validate-skills.py` 和 `python3 scripts/test-sync.py`，后者在临时目录验证四端分发和配置保留。
+维护流程只同步选定端的指令和配置，不覆盖其他端设置；共享 Skill 源码更新会同时作用于现有软链。仅同步四端指令可运行 `scripts/sync-global-instructions.py --all`（包含 ZCode，不安装 MCP 或 hooks）。
+
+校验依赖先安装 `python3 -m pip install -r requirements-dev.txt`。修改后运行：
+
+```bash
+python3 scripts/render-global-instructions.py --check
+python3 scripts/validate-skills.py
+python3 scripts/test-sync.py
+python3 scripts/doctor.py
+```
+
+doctor 默认只读，不联网、不 fetch、不启动 MCP 或 hook；Git 结果来自缓存远端，不表示线上此刻状态。它检查已安装入口和配置漂移，保留额外 Skill、Cloudflare off 等用户选择，不输出 MCP env 值。`.github/workflows/check.yml` 在 push 和 pull request 上执行前三项检查。`references/skill-eval-cases.json` 保存核心 Skill 应触发/不应触发样例，静态测试只检查样例有效性，实际模型评测需要另行执行。
 
 ## 目录
 

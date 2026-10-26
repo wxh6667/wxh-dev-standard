@@ -89,17 +89,27 @@ def sync_agents() -> None:
     print(f"[agents] SYNC {AGENTS_SOURCE} -> {AGENTS_TARGET}")
 
 
+def agent_link_conflicts() -> list[str]:
+    conflicts = []
+    for link, source in sorted(AGENT_LINKS.items()):
+        if link.is_symlink():
+            if link.resolve(strict=False) != source.resolve(strict=False):
+                conflicts.append(f"{link} -> {link.resolve(strict=False)}")
+            else:
+                continue
+        elif link.exists():
+            conflicts.append(f"{link} exists and is not a symlink")
+    return conflicts
+
+
 def sync_agent_links() -> None:
+    conflicts = agent_link_conflicts()
+    if conflicts:
+        raise SystemExit("link conflicts detected before writing: " + "; ".join(conflicts))
     for link, source in sorted(AGENT_LINKS.items()):
         link.parent.mkdir(parents=True, exist_ok=True)
         if link.is_symlink():
-            if link.resolve(strict=False) == source.resolve(strict=False):
-                print(f"[links] OK {link} -> {source}")
-            else:
-                print(f"[links] CONFLICT {link} -> {link.resolve(strict=False)}; skipped")
-            continue
-        if link.exists():
-            print(f"[links] CONFLICT {link} exists and is not a symlink; skipped")
+            print(f"[links] OK {link} -> {source}")
             continue
         link.symlink_to(source, target_is_directory=True)
         print(f"[links] LINK {link} -> {source}")
@@ -232,6 +242,10 @@ def merge_hooks(config: dict) -> None:
 
 
 def main() -> int:
+    conflicts = agent_link_conflicts()
+    if conflicts:
+        print("[links] CONFLICT " + "; ".join(conflicts))
+        return 1
     sync_agents()
     sync_agent_links()
     install_hook()

@@ -13,9 +13,10 @@ never touched; only the wxh-owned hook entries (PreToolUse Trellis gate and
 UserPromptSubmit steer reminder), the wxh-owned
 permissions keys and a statusLine block pointing at the wxh script are
 added/updated. A user-configured statusLine pointing anywhere else is kept.
-Existing defaultMode, a user-set `allow` list, all user-selected skillOverrides and a user-set
-skill-listing budget are preserved; missing defaults are added. User-added `ask` entries are preserved and
-re-running the script re-adds missing ask baseline entries. A timestamped
+Existing defaultMode, non-redundant `allow` entries, all user-selected skillOverrides and a user-set
+skill-listing budget are preserved; missing defaults are added. When bare `Bash` is allowed, its redundant
+Bash subrules are removed. User-added `ask` entries are preserved and re-running the script adds missing
+ask baseline entries. Sandbox defaults and existing sandbox values are merged without replacing user choices. A timestamped
 backup of settings.json is taken before any change.
 
 Entries are written in the schema-required matcher-group shape:
@@ -89,9 +90,10 @@ SETTINGS_KEYS_BASELINE = {
 
 # wxh-owned permissions baseline merged into settings.json.
 # defaultMode "acceptEdits" auto-approves file edits; `allow: ["Bash"]` runs
-# shell commands without per-command confirmation, while the `ask` list always
-# forces explicit confirmation for destructive commands. Missing keys are
-# filled in; existing defaultMode/allow and user-added ask entries are kept.
+# shell commands without per-command confirmation, while matching `ask` rules
+# request confirmation before allow. Text matching is not a security boundary.
+# Missing keys are filled in; existing defaultMode and user-owned values are kept.
+# Redundant Bash allow subrules are removed only when bare Bash is present.
 PERMISSIONS_BASELINE = {
     "defaultMode": "acceptEdits",
     "allow": [
@@ -99,96 +101,121 @@ PERMISSIONS_BASELINE = {
     ],
     "ask": [
         # 文件系统删除与就地覆盖
-        "Bash(rm:*)",
-        "Bash(sudo rm:*)",
-        "Bash(rmdir:*)",
-        "Bash(shred:*)",
-        "Bash(srm:*)",
-        "Bash(rimraf:*)",
-        "Bash(npx rimraf:*)",
-        "Bash(/bin/rm:*)",
-        "Bash(/usr/bin/rm:*)",
+        "Bash(rm *)",
+        "Bash(sudo rm *)",
+        "Bash(rmdir *)",
+        "Bash(shred *)",
+        "Bash(truncate *)",
+        "Bash(unlink *)",
+        "Bash(dd *)",
+        "Bash(mkfs*)",
+        "Bash(sudo *)",
+        "Bash(kill *)",
+        "Bash(pkill *)",
+        "Bash(killall*)",
+        "Bash(srm *)",
+        "Bash(rimraf *)",
+        "Bash(npx rimraf *)",
+        "Bash(/bin/rm *)",
+        "Bash(/usr/bin/rm *)",
         "Bash(find * -delete*)",
-        "Bash(find * -exec rm:*)",
-        "Bash(find * -execdir rm:*)",
-        "Bash(find * -exec shred:*)",
+        "Bash(find * -exec rm *)",
+        "Bash(find * -execdir rm *)",
+        "Bash(find * -exec shred *)",
         "Bash(rsync * --delete*)",
-        "Bash(cp /dev/null:*)",
-        "Bash(crontab -r:*)",
-        "Bash(wipefs:*)",
-        "Bash(fdisk:*)",
-        "Bash(parted:*)",
-        "Bash(blkdiscard:*)",
+        "Bash(cp /dev/null *)",
+        "Bash(crontab -r *)",
+        "Bash(wipefs *)",
+        "Bash(fdisk *)",
+        "Bash(parted *)",
+        "Bash(blkdiscard *)",
         # git 删除、丢弃与不可恢复操作
-        "Bash(git clean:*)",
-        "Bash(git reset --hard:*)",
-        "Bash(git push --force:*)",
-        "Bash(git push -f:*)",
-        "Bash(git branch -D:*)",
-        "Bash(git rm:*)",
-        "Bash(git push --delete:*)",
+        "Bash(git clean *)",
+        "Bash(git reset --hard *)",
+        "Bash(git push --force *)",
+        "Bash(git push -f *)",
+        "Bash(git branch -D *)",
+        "Bash(git rm *)",
+        "Bash(git push --delete *)",
         "Bash(git push * --delete*)",
-        "Bash(git push --mirror:*)",
-        "Bash(git tag -d:*)",
-        "Bash(git stash drop:*)",
-        "Bash(git stash clear:*)",
-        "Bash(git worktree remove:*)",
-        "Bash(git checkout -f:*)",
-        "Bash(git switch -f:*)",
-        "Bash(git switch --discard-changes:*)",
-        "Bash(git update-ref -d:*)",
-        "Bash(git reflog delete:*)",
-        "Bash(git reflog expire:*)",
+        "Bash(git push --mirror *)",
+        "Bash(git tag -d *)",
+        "Bash(git stash drop *)",
+        "Bash(git stash clear *)",
+        "Bash(git worktree remove *)",
+        "Bash(git checkout -f *)",
+        "Bash(git checkout --*)",
+        "Bash(git checkout .*)",
+        "Bash(git restore *)",
+        "Bash(git filter-branch *)",
+        "Bash(git gc*)",
+        "Bash(git switch -f *)",
+        "Bash(git switch --discard-changes *)",
+        "Bash(git update-ref -d *)",
+        "Bash(git reflog delete *)",
+        "Bash(git reflog expire *)",
         # 容器、Kubernetes 与 Helm
-        "Bash(docker rm:*)",
-        "Bash(docker rmi:*)",
-        "Bash(docker volume rm:*)",
-        "Bash(docker volume prune:*)",
-        "Bash(docker system prune:*)",
-        "Bash(docker network prune:*)",
-        "Bash(docker builder prune:*)",
-        "Bash(docker container rm:*)",
-        "Bash(docker image rm:*)",
-        "Bash(docker compose down:*)",
-        "Bash(docker compose rm:*)",
-        "Bash(podman rm:*)",
-        "Bash(podman rmi:*)",
-        "Bash(podman volume rm:*)",
-        "Bash(podman system prune:*)",
-        "Bash(kubectl delete:*)",
-        "Bash(kubectl drain:*)",
+        "Bash(docker rm *)",
+        "Bash(docker rmi *)",
+        "Bash(docker volume rm *)",
+        "Bash(docker volume prune *)",
+        "Bash(docker system prune *)",
+        "Bash(docker container prune *)",
+        "Bash(docker image prune *)",
+        "Bash(docker network prune *)",
+        "Bash(docker builder prune *)",
+        "Bash(docker container rm *)",
+        "Bash(docker image rm *)",
+        "Bash(docker compose down *)",
+        "Bash(docker compose rm *)",
+        "Bash(podman rm *)",
+        "Bash(podman rmi *)",
+        "Bash(podman volume rm *)",
+        "Bash(podman system prune *)",
+        "Bash(kubectl delete *)",
+        "Bash(kubectl drain *)",
         "Bash(kubectl apply * --prune*)",
-        "Bash(helm uninstall:*)",
-        "Bash(helm delete:*)",
+        "Bash(helm uninstall *)",
+        "Bash(helm delete *)",
         # 包管理卸载
-        "Bash(apt remove:*)",
-        "Bash(apt purge:*)",
-        "Bash(apt autoremove:*)",
-        "Bash(dnf remove:*)",
-        "Bash(yum remove:*)",
+        "Bash(apt remove *)",
+        "Bash(apt purge *)",
+        "Bash(apt autoremove *)",
+        "Bash(dnf remove *)",
+        "Bash(yum remove *)",
         "Bash(pacman -R*)",
-        "Bash(apk del:*)",
-        "Bash(snap remove:*)",
-        "Bash(brew uninstall:*)",
-        "Bash(pip uninstall:*)",
-        "Bash(pip3 uninstall:*)",
-        "Bash(npm uninstall:*)",
-        "Bash(npm un:*)",
-        "Bash(pnpm remove:*)",
-        "Bash(yarn remove:*)",
-        "Bash(cargo uninstall:*)",
-        "Bash(userdel:*)",
-        "Bash(groupdel:*)",
+        "Bash(apk del *)",
+        "Bash(snap remove *)",
+        "Bash(brew uninstall *)",
+        "Bash(pip uninstall *)",
+        "Bash(pip3 uninstall *)",
+        "Bash(npm uninstall *)",
+        "Bash(npm un *)",
+        "Bash(pnpm remove *)",
+        "Bash(yarn remove *)",
+        "Bash(cargo uninstall *)",
+        "Bash(userdel *)",
+        "Bash(groupdel *)",
         # 会绕过命令前缀匹配的删除包装
-        "Bash(bash -c:*)",
-        "Bash(sh -c:*)",
-        "Bash(zsh -c:*)",
-        "Bash(env * rm:*)",
-        "Bash(/usr/bin/env * rm:*)",
-        "Bash(xargs -0 rm:*)",
-        "Bash(xargs * rm:*)",
-        "Bash(npm publish:*)",
+        "Bash(bash -c *)",
+        "Bash(sh -c *)",
+        "Bash(zsh -c *)",
+        "Bash(env * rm *)",
+        "Bash(/usr/bin/env * rm *)",
+        "Bash(xargs -0 rm *)",
+        "Bash(xargs * rm *)",
+        "Bash(npm publish *)",
+        "Bash(dangerouslyDisableSandbox:true)",
     ],
+}
+
+# Start with filesystem isolation while retaining explicit unsandboxed retries.
+# Existing user values win; network and fail-closed policy need separate validation.
+SANDBOX_BASELINE = {
+    "enabled": True,
+    "autoAllowBashIfSandboxed": False,
+    "allowUnsandboxedCommands": True,
+    "failIfUnavailable": False,
 }
 
 
@@ -331,6 +358,36 @@ def register_settings(script_name: str, settings: dict) -> None:
         print(f"[settings] ADDED {event} group for {script_name}")
 
 
+def canonical_permission_rule(rule: str) -> str:
+    if rule.startswith("Bash(") and rule.endswith(":*)"):
+        return rule[:-3] + " *)"
+    return rule
+
+
+def merge_permission_rules(existing: list[str], baseline: list[str]) -> list[str]:
+    merged = []
+    for rule in [*existing, *baseline]:
+        rule = canonical_permission_rule(rule)
+        if rule not in merged:
+            merged.append(rule)
+    return merged
+
+
+def sync_sandbox(settings: dict) -> None:
+    sandbox = settings.get("sandbox")
+    if "sandbox" not in settings:
+        sandbox = {}
+        settings["sandbox"] = sandbox
+    if not isinstance(sandbox, dict):
+        raise SystemExit("settings sandbox is not an object; refusing to edit")
+    for key, value in SANDBOX_BASELINE.items():
+        if key not in sandbox:
+            sandbox[key] = value
+            print(f"[settings] UPDATED sandbox.{key} = {value}")
+        else:
+            print(f"[settings] OK sandbox.{key}")
+
+
 def sync_permissions(settings: dict) -> None:
     """Merge the wxh-owned permissions baseline into settings['permissions'].
 
@@ -351,15 +408,31 @@ def sync_permissions(settings: dict) -> None:
                 not isinstance(existing, list) or not all(isinstance(e, str) for e in existing)
             ):
                 raise SystemExit("settings permissions.ask is not a string list; refusing to edit")
-            merged = list(existing) if isinstance(existing, list) else []
-            for rule in value:
-                if rule not in merged:
-                    merged.append(rule)
+            merged = merge_permission_rules(existing or [], value)
             if merged != (existing if isinstance(existing, list) else []):
                 permissions["ask"] = merged
                 print(f"[settings] UPDATED permissions.ask (baseline {len(value)} rules)")
             else:
                 print("[settings] OK permissions.ask")
+        elif key == "allow":
+            existing = permissions.get("allow")
+            if "allow" in permissions and (
+                not isinstance(existing, list) or not all(isinstance(e, str) for e in existing)
+            ):
+                raise SystemExit("settings permissions.allow is not a string list; refusing to edit")
+            if isinstance(existing, list):
+                if "Bash" in existing:
+                    merged = [rule for rule in existing if rule == "Bash" or not rule.startswith("Bash(")]
+                    if merged != existing:
+                        permissions["allow"] = merged
+                        print("[settings] UPDATED permissions.allow (removed redundant Bash rules)")
+                    else:
+                        print("[settings] OK permissions.allow")
+                else:
+                    print("[settings] KEEP user-owned permissions.allow")
+            elif "allow" not in permissions:
+                permissions["allow"] = list(value)
+                print("[settings] UPDATED permissions.allow")
         else:
             if key not in permissions:
                 permissions[key] = value
@@ -474,6 +547,7 @@ def main() -> int:
     for name in HOOK_MANIFEST:
         register_settings(name, settings)
     sync_permissions(settings)
+    sync_sandbox(settings)
     sync_skill_overrides(settings)
     sync_settings_keys(settings)
     sync_statusline(settings)

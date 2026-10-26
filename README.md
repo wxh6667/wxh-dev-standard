@@ -3,10 +3,10 @@
 面向个人开发环境的跨项目全局 AI Coding 配置库，存在的意义：
 
 1. **跨机器备份个人习惯**：全局提示词、自研 Skill、hooks、MCP 基线的唯一事实源，任何主机 clone 后一键还原；
-2. **按功能消解工具重叠**：执行工具与专业策略分工，真正重复的实现收敛为一个来源，四端各自出厂自带的能力不搬运、不分发；
+2. **按功能消解工具重叠**：执行工具与专业策略分工，真正重复的实现收敛为一个来源，各端各自出厂自带的能力不搬运、不分发；
 3. **沉淀个人习惯，同时保留让模型变好的基础约束**：调试优先、代码质量、安全边界、主机资源保护等底层行为约束长期保留，具体流程持续向 Skill 迁移。
 
-Codex、Claude Code、ZCode 与 PI-Desktop 保留各自的指令入口、权限和 MCP 配置，同一仓库维护共享 Skill 源码。Codex、ZCode 与本库对应的 PI-Desktop 共用 `~/.agents/skills`，Claude 使用 `~/.claude/skills`；这些入口链接同一源码，因此源码更新会影响已连接的各端，不代表各端配置可以互相覆盖。
+Codex、Claude Code、ZCode、PI-Desktop 与 DSH 保留各自的指令入口、权限和 MCP 配置，同一仓库维护共享 Skill 源码。Codex、ZCode、PI-Desktop 与 DSH 共用 `~/.agents/skills`，Claude 使用 `~/.claude/skills`；这些入口链接同一源码，因此源码更新会影响已连接的各端，不代表各端配置可以互相覆盖。
 
 本仓库按内容分：
 
@@ -15,6 +15,7 @@ Codex、Claude Code、ZCode 与 PI-Desktop 保留各自的指令入口、权限�
 3. `skills-vendor/`：第三方 Skill 快照，与 `skills/` 一并分发；
 4. `hooks/`：hook 脚本标准源——Trellis commit 门禁（Claude Code 原样安装；ZCode 由 `sync-zcode.py` 适配安装）与 UserPromptSubmit steer 提醒（仅 Claude Code）；
 5. `mcp/`：各端 MCP 基线（只含个人自配服务，官方自带的 MCP 不收录），只合并，不整份覆盖。
+6. `dsh/`：DSH 适配层——Trellis commit 门禁/steer 插件、MCP overlay 与独立 profile 安装说明。
 
 具体业务项目自己的需求、架构、数据库说明、项目 `AGENTS.md` / `CLAUDE.md`、Docker/CNB 文件以及 Serena/Trellis 项目状态继续留在各项目中。
 
@@ -100,6 +101,10 @@ python3 ~/.wxh-dev-standard/scripts/validate-skills.py
 
 项目级 `.zcode/config.json` 的钩子命令必须用 git 锚定而不是直拼 `${ZCODE_PROJECT_DIR}`——该变量随 shell cwd 漂移，直拼会导致对话 `cd` 进子目录后钩子全部报错。根因、命令模板与验证方法见 [`references/zcode-hook-pitfalls.md`](references/zcode-hook-pitfalls.md)；批量修复/巡检用 [`scripts/fix-zcode-hook-paths.py`](scripts/fix-zcode-hook-paths.py)（幂等，`--trellis-template` 连生成器模板一起修，Trellis 升级后重跑）。
 
+## DSH
+
+DSH 侧用 `trellis init --dsh` 启用 skill 约束的 Trellis；本仓库的 `dsh/` 提供 commit 门禁/steer 插件和 MCP baseline。安装、独立 profile 与测试见 [`dsh/README.md`](dsh/README.md)。
+
 ## PI-Desktop 安装
 
 PI-Desktop 侧是独立的一套：用根目录 `AGENTS.md`（同步到 `~/.pi/agent/AGENTS.md`）+ `skills/`（与 Codex 共用 `~/.agents/skills`），不碰 `~/.codex`、`~/.claude` 和 `~/.zcode`。PI 自带权限确认体系，`hooks/` 和 Claude permissions 基线不适用、不分发。
@@ -166,6 +171,7 @@ skills/       13 个自研 Skills（业务四件套 + 评审/通用增强）
 skills-vendor/ 55 个第三方 Skills 快照（cloudflare / mattpocock / app-shell-ui，来源见其 SOURCES.md）
 hooks/        Trellis commit 门禁与 UserPromptSubmit steer 提醒 hook 标准源（Claude 原样安装；ZCode 仅适配安装门禁，steer 仅 Claude 端）
 mcp/          各端脱敏 MCP 基线与安全合并说明
+dsh/          DSH 适配插件、MCP overlay、独立 profile 与测试
 migration/    原环境备份的脱敏盘点与迁移说明
 references/   多个 Skill 共用的详细参考
 templates/    项目 Docker / Compose / CNB 等模板

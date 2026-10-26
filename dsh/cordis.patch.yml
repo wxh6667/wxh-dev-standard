@@ -1,0 +1,95 @@
+# wxh-dev-standard DSH overlay
+#
+# Apply this list to a DSH profile's cordis.patch.yml, or pass it as an
+# additional overlay with `--patch`. It adds:
+#   1. the wxh-dsh-trellis adapter plugin (Trellis commit gate + steer reminder)
+#   2. the personal MCP baseline
+#
+# It intentionally does NOT define model routes or a profile identity; keep
+# those in the target profile so this file stays portable.
+#
+# Install the plugin before mounting this overlay:
+#   dsh plugin --profile <profile> add file:/path/to/wxh-dev-standard/dsh/plugin
+#
+# MCP prerequisites: npx, uvx, Python 3.13 for serena, and (optionally)
+# CONTEXT7_API_KEY in the environment. Missing optional servers do not stop
+# the harness because failOnStartupError is false.
+
+- insert:
+    - id: wxh-dsh-trellis
+      name: wxh-dsh-trellis
+      config:
+        gate: true
+        steer: true
+        failClosed: true
+        gateTimeoutMs: 10000
+
+    # --- MCP baseline -----------------------------------------------------
+    # Mirrors mcp/claude.mcp.example.json and mcp/codex.config.fragment.toml.
+    # Excluded on purpose: deobfuscate-mcp-server (disabled in the source env),
+    # figma-bridge and fastctx (on-demand / machine-specific, not in baseline).
+
+    - id: mcp-context7
+      name: '@deepseek-ai/dsh-mcp-client'
+      config:
+        serverName: context7
+        transport: stdio
+        command: npx
+        args: ['-y', '@upstash/context7-mcp']
+        env:
+          CONTEXT7_API_KEY: !!js process.env.CONTEXT7_API_KEY ?? ''
+        failOnStartupError: false
+
+    - id: mcp-sequential-thinking
+      name: '@deepseek-ai/dsh-mcp-client'
+      config:
+        serverName: sequential-thinking
+        transport: stdio
+        command: npx
+        args: ['-y', '@modelcontextprotocol/server-sequential-thinking']
+        failOnStartupError: false
+
+    - id: mcp-serena
+      name: '@deepseek-ai/dsh-mcp-client'
+      config:
+        serverName: serena
+        transport: stdio
+        command: uvx
+        args: ['-p', '3.13', 'serena-agent', 'start-mcp-server', '--project-from-cwd', '--context', 'claude-code']
+        env:
+          PATH: !!js process.env.HOME + '/.local/bin:' + (process.env.PATH ?? '')
+        failOnStartupError: false
+
+    - id: mcp-playwright
+      name: '@deepseek-ai/dsh-mcp-client'
+      config:
+        serverName: playwright
+        transport: stdio
+        command: npx
+        args: ['@playwright/mcp@latest', '--isolated', '--no-sandbox']
+        failOnStartupError: false
+
+    - id: mcp-server-time
+      name: '@deepseek-ai/dsh-mcp-client'
+      config:
+        serverName: mcp-server-time
+        transport: stdio
+        command: uvx
+        args: ['--with', 'mcp<2', 'mcp-server-time==2026.7.10', '--local-timezone=Asia/Shanghai']
+        env:
+          PATH: !!js process.env.HOME + '/.local/bin:' + (process.env.PATH ?? '')
+        failOnStartupError: false
+
+    # Claude-baseline document loader. DSH can run it through uvx; drop this
+    # row if the native office tools are preferred.
+    - id: mcp-awslabs-doc-loader
+      name: '@deepseek-ai/dsh-mcp-client'
+      config:
+        serverName: awslabs-doc-loader
+        transport: stdio
+        command: uvx
+        args: ['awslabs.document-loader-mcp-server@latest']
+        env:
+          FASTMCP_LOG_LEVEL: ERROR
+          PATH: !!js process.env.HOME + '/.local/bin:' + (process.env.PATH ?? '')
+        failOnStartupError: false

@@ -1,0 +1,12 @@
+{
+  "name": "wxh-dsh-trellis",
+  "version": "0.1.0",
+  "private": true,
+  "description": "DSH plugin: Trellis commit gate and per-turn steer reminder for wxh-dev-standard",
+  "type": "module",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js",
+    "./package.json": "./package.json"
+  }
+}

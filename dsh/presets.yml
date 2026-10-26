@@ -1,0 +1,198 @@
+# wxh-dev-standard agent presets
+#
+# Additional DSH agent presets that sit beside the shipped standard/ptc/
+# minimal/cordis ones. Append this list to a profile's cordis.patch.yml, or
+# pass it as an extra overlay with `--patch`.
+#
+# Scope: each preset only changes persona, the tool surface and (optionally)
+# the skill roots. The model stays whatever the deployment's
+# `agent-default-model` row sets; presets cannot change it.
+#
+# Required rows in every preset:
+#   agent-instructions — without it the agent never loads AGENTS.md/CLAUDE.md
+#   skill-filesystem + tool-skill — the skill catalog and loader
+#
+# Install:
+#   cat dsh/presets.yml >> ~/.dsh/profiles/web/cordis.patch.yml
+#   dsh --profile web --dump-config      # expect preset-research/writer/ops
+# Restart DSH afterwards; presets apply to sessions created after the restart.
+#
+# Two traps worth knowing before editing this file:
+#   1. The entries must stay inside `- insert:`. A bare `- id: preset-…` entry is
+#      a patch *target*; DSH prints `entry "preset-…" not found` and boots
+#      anyway, so an unwrapped preset silently never exists.
+#   2. A freshly created profile ships its patch as `[]`. Appending to that
+#      literal makes invalid YAML (`end of the stream or a document separator is
+#      expected`). Delete the `[]` line first, then append.
+#
+# Skill isolation is deliberately not enabled here: `includeDefaultRoots`
+# stays at its default so all globally installed skills remain reachable.
+# Narrow a preset to its own skill root only if catalog noise becomes a real
+# cost — see `customSkillDirs` in dsh-skill-filesystem.
+
+- insert:
+    - id: preset-research
+      name: '@deepseek-ai/dsh-agent-preset'
+      config:
+        id: research
+        name: 调研
+        description: 只读调研与尽调：查资料、读代码、并行取证，不写文件、不执行命令。
+        order: 5
+        plugins:
+          - id: persona
+            name: '@deepseek-ai/dsh-persona'
+            config:
+              prefix: >-
+                你是调研分析员。以可核验的一手材料为准，区分事实、推断与未知；
+                给出结论时说明证据来源与强弱，不确定处直接说不确定。
+          - id: agent-instructions
+            name: '@deepseek-ai/dsh-agent-instructions'
+            config:
+              maxBytes: 65536
+          - id: time-context
+            name: '@deepseek-ai/dsh-time-context'
+          - id: tool-fs
+            name: '@deepseek-ai/dsh-tool-fs'
+            config:
+              read: true
+              write: false
+              edit: false
+          - id: tool-fs-search
+            name: '@deepseek-ai/dsh-tool-fs-search'
+          - id: skill-filesystem
+            name: '@deepseek-ai/dsh-skill-filesystem'
+          - id: tool-skill
+            name: '@deepseek-ai/dsh-tool-skill'
+          - id: tool-web
+            name: '@deepseek-ai/dsh-tool-web'
+            config:
+              fetch: true
+          - id: tool-todo
+            name: '@deepseek-ai/dsh-tool-todo'
+          - id: tool-ask-user
+            name: '@deepseek-ai/dsh-tool-ask-user'
+          - id: present
+            name: '@deepseek-ai/dsh-tool-present'
+          - id: compaction
+            name: cordis:group
+            group: true
+            config:
+              - id: compaction-basic
+                name: '@deepseek-ai/dsh-compaction-basic'
+              - id: command-compact
+                name: '@deepseek-ai/dsh-command-compact'
+          - id: delegation
+            name: cordis:group
+            group: true
+            isolate:
+              workflowEngine: true
+            config:
+              - id: tool-subagent-control
+                name: '@deepseek-ai/dsh-tool-subagent-control'
+              - id: tool-subagent-list-agents
+                name: '@deepseek-ai/dsh-tool-subagent-control/list-agents'
+              - id: tool-subagent
+                name: '@deepseek-ai/dsh-tool-subagent'
+                config:
+                  provider: spawn
+                  toolName: subagent
+
+    - id: preset-writer
+      name: '@deepseek-ai/dsh-agent-preset'
+      config:
+        id: writer
+        name: 写作
+        description: 中文文档与交付物：读写文件、查资料、产出成稿，不执行 shell。
+        order: 6
+        plugins:
+          - id: persona
+            name: '@deepseek-ai/dsh-persona'
+            config:
+              prefix: >-
+                你是中文文档写作者。先定读者与用途，再落结构与措辞；
+                给人看的用中文，机器认的标识保持英文，不写空泛总结句。
+          - id: agent-instructions
+            name: '@deepseek-ai/dsh-agent-instructions'
+            config:
+              maxBytes: 65536
+          - id: time-context
+            name: '@deepseek-ai/dsh-time-context'
+          - id: tool-fs
+            name: '@deepseek-ai/dsh-tool-fs'
+          - id: tool-fs-search
+            name: '@deepseek-ai/dsh-tool-fs-search'
+          - id: skill-filesystem
+            name: '@deepseek-ai/dsh-skill-filesystem'
+          - id: tool-skill
+            name: '@deepseek-ai/dsh-tool-skill'
+          - id: tool-web
+            name: '@deepseek-ai/dsh-tool-web'
+            config:
+              fetch: true
+          - id: tool-todo
+            name: '@deepseek-ai/dsh-tool-todo'
+          - id: tool-ask-user
+            name: '@deepseek-ai/dsh-tool-ask-user'
+          - id: present
+            name: '@deepseek-ai/dsh-tool-present'
+          - id: compaction
+            name: cordis:group
+            group: true
+            config:
+              - id: compaction-basic
+                name: '@deepseek-ai/dsh-compaction-basic'
+              - id: command-compact
+                name: '@deepseek-ai/dsh-command-compact'
+
+    - id: preset-ops
+      name: '@deepseek-ai/dsh-agent-preset'
+      config:
+        id: ops
+        name: 运维
+        description: 部署与排障：执行命令、改配置、跑构建，按资源与安全边界操作。
+        order: 7
+        plugins:
+          - id: persona
+            name: '@deepseek-ai/dsh-persona'
+            config:
+              prefix: >-
+                你是运维工程师。先看实际状态再动手，改动可回滚，失败直接暴露；
+                重构建或全量测试前确认主机可用内存余量。
+          - id: agent-instructions
+            name: '@deepseek-ai/dsh-agent-instructions'
+            config:
+              maxBytes: 65536
+          - id: time-context
+            name: '@deepseek-ai/dsh-time-context'
+          - id: tool-bash
+            name: '@deepseek-ai/dsh-tool-bash'
+            disabled: !!js process.platform === 'win32'
+          - id: tool-pwsh
+            name: '@deepseek-ai/dsh-tool-pwsh'
+            disabled: !!js process.platform !== 'win32'
+          - id: tool-fs
+            name: '@deepseek-ai/dsh-tool-fs'
+          - id: tool-fs-search
+            name: '@deepseek-ai/dsh-tool-fs-search'
+          - id: skill-filesystem
+            name: '@deepseek-ai/dsh-skill-filesystem'
+          - id: tool-skill
+            name: '@deepseek-ai/dsh-tool-skill'
+          - id: command-goal
+            name: '@deepseek-ai/dsh-command-goal'
+          - id: tool-goal
+            name: '@deepseek-ai/dsh-tool-goal'
+          - id: tool-todo
+            name: '@deepseek-ai/dsh-tool-todo'
+          - id: tool-ask-user
+            name: '@deepseek-ai/dsh-tool-ask-user'
+          - id: present
+            name: '@deepseek-ai/dsh-tool-present'
+          - id: compaction
+            name: cordis:group
+            group: true
+            config:
+              - id: compaction-basic
+                name: '@deepseek-ai/dsh-compaction-basic'
+              - id: command-compact
+                name: '@deepseek-ai/dsh-command-compact'

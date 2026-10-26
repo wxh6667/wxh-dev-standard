@@ -291,7 +291,7 @@ python3 "$HOME/.wxh-dev-standard/scripts/validate-skills.py"
 
 ## 共享源码与分端验证
 
-共享正文只编辑仓库根目录 `AGENTS.md` 首行后的内容，再运行 `python3 scripts/render-global-instructions.py --write` 生成 `CLAUDE.md` 和 `zcode/AGENTS.md`；更新已有安装时运行 `--check`。各端加载文件仍分别同步，`sync-global-instructions.py --all` 只同步四端指令，`--zcode` 可仅同步 ZCode 指令；完整 ZCode 安装仍使用 sync-zcode.py。全局指令文件是宿主加载的长期规则，不代替系统层权限。
+共享正文只编辑仓库根目录 `AGENTS.md` 首行后的内容，再运行 `python3 scripts/render-global-instructions.py --write` 生成 `CLAUDE.md` 和 `zcode/AGENTS.md`；更新已有安装时运行 `--check`。各端加载文件仍分别同步，`sync-global-instructions.py --all` 同步五端指令（Codex、Claude、PI、ZCode、DSH），`--zcode`、`--dsh` 等可仅同步单端；完整 ZCode 安装仍使用 sync-zcode.py，DSH 的 MCP 与门禁插件见 `dsh/README.md`。全局指令文件是宿主加载的长期规则，不代替系统层权限。
 
 Skill 正文共享，各端启用与权限配置分别保留。Claude 的 off 会同时隐藏并禁止调用，不能当成“仅手动”；缺失配置使用 on/name-only，已有 off 选择仍保留。Claude 的 disable-model-invocation 与 Codex openai.yaml 的调用政策不是跨端通用开关；ZCode/PI 需按实际版本确认加载与显式调用行为。23 个 Skill 在 Claude/Codex 设置为显式调用，其余允许匹配，实际还受各端用户启用配置影响。
 

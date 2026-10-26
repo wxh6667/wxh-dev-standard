@@ -25,8 +25,9 @@ Codex、Claude Code、ZCode、PI-Desktop 与 DSH 保留各自的指令入口、�
 - [`CLAUDE.md`](CLAUDE.md)：**Claude Code 全局提示词标准源**，安装时同步到 `~/.claude/CLAUDE.md`；
 - [`zcode/AGENTS.md`](zcode/AGENTS.md)：**ZCode 全局提示词标准源**（ZCode 用户级指令文件名为 `~/.zcode/AGENTS.md`），由 `scripts/sync-zcode.py` 同步。与 `CLAUDE.md` 同一套基础约束，仅保留 ZCode 侧真实差异（如会话任务工具名）。
 - PI-Desktop：复用根目录 [`AGENTS.md`](AGENTS.md)（与 Codex 同一份标准源），安装时同步到 `~/.pi/agent/AGENTS.md`；全局 Skills 与 Codex 共用 `~/.agents/skills`，无需单独分发；项目级指令分层读取项目根的 `AGENTS.md` / `CLAUDE.md`。
+- DSH：同样复用根目录 [`AGENTS.md`](AGENTS.md)，用户级指令文件为 `$DSH_HOME/AGENTS.md`（默认 `~/.dsh/AGENTS.md`），由 `scripts/sync-global-instructions.py --dsh` 同步；Skills 走 `~/.agents/skills`，MCP 基线与门禁插件由 [`dsh/`](dsh/README.md) 的 overlay 提供。
 
-四端共用同一套基础约束与重叠消解规则：这些文件都不是"只约束 wxh-dev-standard 这个仓库自身"的项目规则，而是跨项目长期行为约束；基础约束各端一致，工具与能力边界各端同款。编辑共享规则时只修改根目录 `AGENTS.md` 首行后的正文，再运行 `python3 scripts/render-global-instructions.py --write` 生成 Claude/ZCode 文件；CI 用 `--check` 防止手工修改造成漂移。
+五端共用同一套基础约束与重叠消解规则：这些文件都不是"只约束 wxh-dev-standard 这个仓库自身"的项目规则，而是跨项目长期行为约束；基础约束各端一致，工具与能力边界各端同款。编辑共享规则时只修改根目录 `AGENTS.md` 首行后的正文，再运行 `python3 scripts/render-global-instructions.py --write` 生成 Claude/ZCode 文件；CI 用 `--check` 防止手工修改造成漂移。
 
 ## Skills 体系（自研 13 + 第三方快照 55，共 68 个）
 
@@ -148,7 +149,7 @@ PI-Desktop 指令单独同步：
 更新我的 wxh-dev-standard PI-Desktop 全局开发环境。
 ```
 
-维护流程只同步选定端的指令和配置，不覆盖其他端设置；共享 Skill 源码更新会同时作用于现有软链。仅同步四端指令可运行 `scripts/sync-global-instructions.py --all`（包含 ZCode，不安装 MCP 或 hooks）。
+维护流程只同步选定端的指令和配置，不覆盖其他端设置；共享 Skill 源码更新会同时作用于现有软链。仅同步各端指令可运行 `scripts/sync-global-instructions.py --all`（覆盖 Codex、Claude、PI、ZCode、DSH，不安装 MCP 或 hooks，缺目录时会新建）；单端用 `--codex`/`--claude`/`--pi`/`--zcode`/`--dsh`。ZCode 的完整安装仍走 `sync-zcode.py`，它会同时安装 hook 与 MCP。
 
 校验依赖先安装 `python3 -m pip install -r requirements-dev.txt`。修改后运行：
 

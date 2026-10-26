@@ -228,6 +228,30 @@ class SyncTests(unittest.TestCase):
             task.write_text('raise SystemExit(1)')
             self.assertEqual(gate.active_task_state(str(root)), "unknown")
 
+    def test_agent_presets_are_inserted_and_complete(self):
+        """Presets must live under `- insert:`; a bare id is a patch target DSH
+        reports as `entry "preset-…" not found` instead of defining a preset."""
+        import yaml
+
+        class Loader(yaml.SafeLoader):
+            pass
+
+        Loader.add_multi_constructor("tag:yaml.org,2002:js", lambda loader, _suffix, node: loader.construct_scalar(node))
+        document = yaml.load((ROOT / "dsh/presets.yml").read_text(encoding="utf-8"), Loader=Loader)
+        self.assertEqual(len(document), 1)
+        entry = document[0]
+        self.assertEqual(list(entry), ["insert"], "preset entries must be wrapped in a single - insert: list")
+        presets = entry["insert"]
+        self.assertEqual([p["config"]["id"] for p in presets], ["research", "writer", "ops"])
+        self.assertEqual(len({p["id"] for p in presets}), len(presets), "preset row ids must be unique")
+        self.assertEqual(len({p["config"]["order"] for p in presets}), len(presets), "order must be unique")
+        for preset in presets:
+            plugins = preset["config"]["plugins"]
+            ids = [plugin["id"] for plugin in plugins]
+            self.assertEqual(len(set(ids)), len(ids), f"{preset['id']}: duplicate child row id")
+            for required in ("agent-instructions", "skill-filesystem", "tool-skill"):
+                self.assertIn(required, ids, f"{preset['id']}: missing {required}")
+
     def test_four_host_installation_in_temporary_home(self):
         with tempfile.TemporaryDirectory(prefix="wxh home ") as tmp:
             home = Path(tmp)

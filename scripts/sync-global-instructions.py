@@ -2,16 +2,28 @@
 from __future__ import annotations
 
 import argparse
+import os
 import shutil
 from datetime import datetime
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+def _dsh_home() -> Path:
+    """Resolve DSH's home the way DSH itself does: $DSH_HOME, else ~/.dsh."""
+    override = os.environ.get("DSH_HOME")
+    if override:
+        return Path(override).expanduser()
+    return Path.home() / ".dsh"
+
+
 TARGETS = {
     "codex": (ROOT / "AGENTS.md", Path.home() / ".codex" / "AGENTS.md"),
     "claude": (ROOT / "CLAUDE.md", Path.home() / ".claude" / "CLAUDE.md"),
     "pi": (ROOT / "AGENTS.md", Path.home() / ".pi" / "agent" / "AGENTS.md"),
     "zcode": (ROOT / "zcode" / "AGENTS.md", Path.home() / ".zcode" / "AGENTS.md"),
+    "dsh": (ROOT / "AGENTS.md", _dsh_home() / "AGENTS.md"),
 }
 
 
@@ -50,6 +62,7 @@ def main() -> int:
     parser.add_argument("--claude", action="store_true")
     parser.add_argument("--pi", action="store_true")
     parser.add_argument("--zcode", action="store_true")
+    parser.add_argument("--dsh", action="store_true")
     parser.add_argument("--all", action="store_true")
     args = parser.parse_args()
 
@@ -62,6 +75,8 @@ def main() -> int:
         selected.append("pi")
     if args.all or args.zcode:
         selected.append("zcode")
+    if args.all or args.dsh:
+        selected.append("dsh")
     if not selected:
         selected.append("codex")
 

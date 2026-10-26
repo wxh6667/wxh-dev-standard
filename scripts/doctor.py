@@ -84,14 +84,19 @@ class Doctor:
                 self.check_file(source, target, f"{name} instructions")
 
     def check_skills(self) -> None:
+        sources = self.skills.skill_dirs()
+        expected = {source.name for source in sources}
         for label, directory in (("Codex/shared", self.home / ".agents/skills"), ("Claude", self.home / ".claude/skills")):
             if not directory.exists():
                 self.report("INFO", f"{label} skill directory not installed")
                 continue
-            for source in self.skills.skill_dirs():
+            for source in sources:
                 link = directory / source.name
                 if not self.skills.same_target(link, source):
                     self.report("FAIL", f"{label} skill link missing or wrong: {source.name}")
+            for entry in sorted(directory.iterdir()):
+                if entry.name not in expected:
+                    self.report("WARN", f"{label} skill entry not managed by this repository: {entry.name}")
 
     def check_claude(self) -> None:
         directory = self.home / ".claude"

@@ -342,6 +342,7 @@ class SyncTests(unittest.TestCase):
             (home / ".claude/skills/user-owned").mkdir()
             result = subprocess.run(command, env=env, capture_output=True, text=True)
             self.assertEqual(result.returncode, 0, result.stdout)
+            self.assertIn("skill entry not managed by this repository: user-owned", result.stdout)
             (home / ".claude/CLAUDE.md").write_text("stale")
             result = subprocess.run(command, env=env, capture_output=True, text=True)
             self.assertEqual(result.returncode, 1)

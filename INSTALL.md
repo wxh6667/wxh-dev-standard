@@ -297,7 +297,9 @@ Skill 正文共享，各端启用与权限配置分别保留。Claude 的 off �
 
 修改前先安装校验依赖：`python3 -m pip install -r requirements-dev.txt`。修改后运行 `python3 scripts/render-global-instructions.py --check`、`python3 scripts/validate-skills.py` 与 `python3 scripts/test-sync.py`。测试使用临时 HOME，不启动 MCP、不调用外部账户，也不修改真实用户设置。它验证分发与合并，不证明模型实际行为已通过；新会话中还需确认实际加载，并用典型任务检查误触发、重复确认和验证遗漏。
 
-安装或更新后运行 `python3 scripts/doctor.py`：默认只读，不联网、不启动 MCP/hooks，Git 只报告缓存远端状态；检查额外 Skill 不会误报，Cloudflare off 等已有选择保留。Linux sandbox 需要 `bubblewrap` 和 `socat`，缺失时 doctor 警告，配置写入不等于隔离生效。当前渐进配置保留确认的 unsandboxed 重试且不收紧网络，后续应按实际工作流验证后再提高限制。
+安装或更新后运行 `python3 scripts/doctor.py`：默认只读，不联网、不启动 MCP/hooks，Git 只报告缓存远端状态；全局 Skill 目录中不属于本仓库的条目按 WARN 逐个报告，用户自有 Skill 视为合法选择、不判失败，Cloudflare off 等已有选择保留。Linux sandbox 需要 `bubblewrap` 和 `socat`，缺失时 doctor 警告，配置写入不等于隔离生效。当前渐进配置保留确认的 unsandboxed 重试且不收紧网络，后续应按实际工作流验证后再提高限制。
+
+`sync-skills.py` 只链接仓库里的 Skill，从不删除全局目录中的其它条目，历史迁移遗留的实体目录会一直留在发现路径上并与仓库 Skill 争夺同一位置。清理前先把目录备份到 `~/.agents/skills-removed-backup-<时间>/`，删除后重跑 doctor 确认对应 WARN 消失；用户自有 Skill 与 Codex 系统 Skill 不要按这条流程处理。
 
 ZCode 的 references/templates 链接冲突会在写入任何配置前返回非零，保留原目标；处理冲突后重新运行同步。
 

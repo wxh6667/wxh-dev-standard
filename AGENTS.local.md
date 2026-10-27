@@ -30,3 +30,12 @@
 - 新增或删除 preset 后，同步更新 `scripts/test-sync.py` 的期望列表和 `dsh/README.md`。
 - 工作树有未提交改动时，不擅自 commit、push 或改写历史。
 - 交付前跑 `scripts/verify.sh`；失败或未跑要说明对验收的影响。
+
+## dsh preset 配置检查清单（防 agent-preset/invalid）
+
+preset 插件条目只写 `- id:` + `name:` 不写 `config:` 时，插件 schema 里必填字段会缺值，新建会话直接报 `agent-preset/invalid: ... missing required value`（整体失败，不是跳过该插件）。详细规则与验证链见 skill `dsh-preset-config`（`skills/dsh-preset-config/SKILL.md`）。要点：
+
+- 本机已知必填 config：`dsh-tool-fs-search`→`sampleOverCapGlobResults`(bool)；`dsh-tool-todo`→`allowParallelInProgress`(bool)；`dsh-plan-mode`→`section`(非空 string)；`dsh-persona`→`prefix`；`dsh-agent-instructions`→`maxBytes`；`dsh-agent-tool-presentation`→`mode`(native|ptc)。新插件查包内 `lib/index.js` 的 `const Config = z.object({...})`：带 `.required()` 的字段必填，另有 `needs a non-empty` 类运行时校验；只有 `.min()/.max()` 无 `.required()` 的字段当前不强制。最终以 `--dump-config` 与新建会话实测为准。
+- `dsh plugin --profile web add` 只写 `package.json`（dependencies + `dsh.profile.bundles`），preset 条目与必填 config 都要手动补。
+- `dsh/presets.yml` 与 `~/.dsh/profiles/web/cordis.patch.yml` 的 preset 块（preset-research/writer/ops/explore/reviewer 每个块都要）两边同步改；只改运行 profile 会回退，只改源文件运行不生效。
+- 修改后验证链：`dsh --profile web --dump-config` 无 invalid → `systemctl --user restart dsh-web.service` → 实际新建一次会话确认成功。

@@ -289,7 +289,7 @@ class SyncTests(unittest.TestCase):
             for relative, source in ((".codex/AGENTS.md", "AGENTS.md"), (".claude/CLAUDE.md", "CLAUDE.md"), (".pi/agent/AGENTS.md", "AGENTS.md"), (".zcode/AGENTS.md", "zcode/AGENTS.md")):
                 self.assertEqual((home / relative).read_bytes(), (ROOT / source).read_bytes())
             for relative in (".agents/skills", ".claude/skills"):
-                self.assertEqual(len(list((home / relative).iterdir())), 68)
+                self.assertEqual(len(list((home / relative).iterdir())), 69)
                 for skill in (home / relative).iterdir():
                     self.assertTrue(skill.is_symlink())
                     self.assertTrue((skill / "SKILL.md").is_file())

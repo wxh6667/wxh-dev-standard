@@ -336,15 +336,16 @@ function outputSchema() {
   return {
     type: 'object',
     additionalProperties: false,
+    required: ['kind', 'script', 'cwd', 'passed', 'exitCode', 'durationMs', 'output', 'error'],
     properties: {
-      kind: { type: 'string', required: true, const: 'checks' },
-      script: { type: 'string', required: true },
-      cwd: { type: 'string', required: true },
-      passed: { type: 'boolean', required: true },
-      exitCode: { required: true, oneOf: [{ type: 'integer' }, { type: 'null' }] },
-      durationMs: { type: 'integer', required: true },
-      output: { type: 'string', required: true },
-      error: { type: 'string', required: true },
+      kind: { type: 'string', const: 'checks' },
+      script: { type: 'string' },
+      cwd: { type: 'string' },
+      passed: { type: 'boolean' },
+      exitCode: { oneOf: [{ type: 'integer' }, { type: 'null' }] },
+      durationMs: { type: 'integer' },
+      output: { type: 'string' },
+      error: { type: 'string' },
     },
   };
 }

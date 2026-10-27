@@ -1,8 +1,12 @@
 import assert from 'node:assert/strict';
+import { createRequire } from 'node:module';
 import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { apply } from './index.js';
+
+const require = createRequire(process.env.DSH_CLI_PACKAGE ?? join(process.env.HOME, 'dsh', 'package.json'));
+const { assertSupportedJsonSchema, validateJsonSchemaValue } = require('@deepseek-ai/dsh-tools');
 
 const root = await mkdtemp(join(tmpdir(), 'wxh-verification-fixture-'));
 const emptyRoot = await mkdtemp(join(tmpdir(), 'wxh-verification-empty-'));
@@ -43,6 +47,30 @@ apply(ctx, {
 const runChecks = tools.get('run_checks');
 assert.ok(runChecks, 'run_checks registered');
 assert.deepEqual(runChecks.parameters, {}, 'model cannot supply a command');
+assertSupportedJsonSchema(runChecks.output.schema, 'run_checks.output');
+assert.deepEqual(
+  validateJsonSchemaValue(runChecks.output.schema, {
+    kind: 'checks',
+    script: 'scripts/verify.sh',
+    cwd: root,
+    passed: true,
+    exitCode: 0,
+    durationMs: 1,
+    output: '',
+    error: '',
+  }),
+  [],
+  'run_checks output satisfies the DSH runtime schema',
+);
+assert.deepEqual(
+  runChecks.output.schema.required,
+  ['kind', 'script', 'cwd', 'passed', 'exitCode', 'durationMs', 'output', 'error'],
+  'required fields use the object-level JSON Schema contract',
+);
+assert.ok(
+  Object.values(runChecks.output.schema.properties).every((property) => !('required' in property)),
+  'DSH rejects required on individual property schemas',
+);
 assert.equal(guards.length, 1, 'completion guard registered');
 const guard = guards[0];
 

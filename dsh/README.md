@@ -81,6 +81,29 @@ so installed skills stay reachable. Narrow a preset with `customSkillDirs` plus
 Presets cannot change the model: that stays on the deployment's
 `agent-default-model` row.
 
+### Official Claude Code execution
+
+`ops` is the controller, not the primary implementation worker. It delegates
+complete, independently verifiable exploration, implementation, debugging and
+review tasks to `subagent_claude_code`. Read-only delegations may run in
+parallel; writes in one workspace must be serialized and must not overlap file
+ownership. DSH still inspects the actual diff and runs the final acceptance
+checks. External runs are one-shot, so a repair task must include the current
+state and review findings rather than try to continue the previous run.
+
+Install the bundle matching the running DSH version before mounting the overlay:
+
+```bash
+dsh plugin --profile web add @deepseek-ai/dsh-subagent-claude-code@<dsh-version>
+```
+
+The bundle registers the provider and exposes `subagent_claude_code` globally.
+The overlay sets `permissionMode: auto`, leaves the model to native Claude Code
+settings, and does not put credentials in configuration. Restart DSH after
+installation and configuration changes. Validate the real composition with
+`--dump-config`, then create a new session and confirm that it activates and
+can see the tool; existing sessions are not evidence of the new preset.
+
 ```bash
 # back up first, then append and check the composition
 cat $HOME/.wxh-dev-standard/dsh/presets.yml >> ~/.dsh/profiles/web/cordis.patch.yml

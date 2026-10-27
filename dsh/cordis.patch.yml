@@ -16,6 +16,16 @@
 # the harness because failOnStartupError is false.
 
 - insert:
+    # Install @deepseek-ai/dsh-subagent-claude-code at the running DSH version
+    # before mounting this overlay. Its bundle owns registration and the global
+    # subagent_claude_code tool; this row only sets the local execution policy.
+    - id: subagent-claude-code
+      name: '@deepseek-ai/dsh-subagent-claude-code'
+      config:
+        providerName: claude-code
+        permissionMode: auto
+        disposeGraceMs: 3000
+
     - id: wxh-dsh-trellis
       name: wxh-dsh-trellis
       config:

@@ -252,6 +252,18 @@ class SyncTests(unittest.TestCase):
             plugins = preset["config"]["plugins"]
             ids = [plugin["id"] for plugin in plugins]
             self.assertEqual(len(set(ids)), len(ids), f"{preset['id']}: duplicate child row id")
+            for plugin in plugins:
+                plugin_id = plugin["id"]
+                if plugin_id == "tool-fs-search":
+                    self.assertIsInstance(plugin["config"]["sampleOverCapGlobResults"], bool)
+                elif plugin_id == "tool-todo":
+                    self.assertIsInstance(plugin["config"]["allowParallelInProgress"], bool)
+                elif plugin_id == "plan-mode":
+                    self.assertTrue(plugin["config"]["section"].strip())
+                elif plugin_id == "planning":
+                    plan_mode = next(child for child in plugin["config"] if child["id"] == "plan-mode")
+                    self.assertIn("config", plan_mode, f"{preset['id']}: plan-mode missing config")
+                    self.assertTrue(plan_mode["config"]["section"].strip())
             required = ["agent-instructions"]
             if preset["config"]["id"] != "explore":
                 required.extend(["skill-filesystem", "tool-skill"])

@@ -238,19 +238,40 @@ class SyncTests(unittest.TestCase):
 
         Loader.add_multi_constructor("tag:yaml.org,2002:js", lambda loader, _suffix, node: loader.construct_scalar(node))
         document = yaml.load((ROOT / "dsh/presets.yml").read_text(encoding="utf-8"), Loader=Loader)
-        self.assertEqual(len(document), 1)
+        self.assertEqual(len(document), 2)
         entry = document[0]
         self.assertEqual(list(entry), ["insert"], "preset entries must be wrapped in a single - insert: list")
         presets = entry["insert"]
-        self.assertEqual([p["config"]["id"] for p in presets], ["research", "writer", "ops"])
+        self.assertEqual(
+            [p["config"]["id"] for p in presets],
+            ["research", "writer", "ops", "explore", "reviewer"],
+        )
         self.assertEqual(len({p["id"] for p in presets}), len(presets), "preset row ids must be unique")
         self.assertEqual(len({p["config"]["order"] for p in presets}), len(presets), "order must be unique")
         for preset in presets:
             plugins = preset["config"]["plugins"]
             ids = [plugin["id"] for plugin in plugins]
             self.assertEqual(len(set(ids)), len(ids), f"{preset['id']}: duplicate child row id")
-            for required in ("agent-instructions", "skill-filesystem", "tool-skill"):
-                self.assertIn(required, ids, f"{preset['id']}: missing {required}")
+            required = ["agent-instructions"]
+            if preset["config"]["id"] != "explore":
+                required.extend(["skill-filesystem", "tool-skill"])
+            for required_id in required:
+                self.assertIn(required_id, ids, f"{preset['id']}: missing {required_id}")
+            if preset["config"]["id"] in ("explore", "reviewer"):
+                fs = next(plugin for plugin in plugins if plugin["id"] == "tool-fs")
+                self.assertFalse(fs["config"]["write"], f"{preset['id']}: must not write")
+                self.assertFalse(fs["config"]["edit"], f"{preset['id']}: must not edit")
+                self.assertNotIn("tool-bash", ids, f"{preset['id']}: must not run shell")
+        ops = next(p for p in presets if p["config"]["id"] == "ops")["config"]["plugins"]
+        delegation = next(plugin for plugin in ops if plugin["id"] == "delegation")
+        subagent = next(plugin for plugin in delegation["config"] if plugin["id"] == "tool-subagent")
+        self.assertEqual(subagent["config"]["agentPreset"], "ops")
+        self.assertEqual(
+            subagent["config"]["allowedAgentPresets"],
+            ["research", "writer", "ops", "explore", "reviewer"],
+        )
+        self.assertEqual(document[1]["id"], "agent-preset-registry")
+        self.assertEqual(document[1]["config"]["default"], "ops")
 
     def test_four_host_installation_in_temporary_home(self):
         with tempfile.TemporaryDirectory(prefix="wxh home ") as tmp:

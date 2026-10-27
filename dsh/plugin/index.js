@@ -5,6 +5,8 @@
  *   source of parsing/denial logic. This plugin only adapts a DSH bash/pwsh
  *   call into the hook payload and passes DSH_SESSION_ID so Trellis can resolve
  *   the active task.
+ * - Stop verification: run the project verification entrypoint before a
+ *   mutating turn closes, and steer with the failure output.
  * - Steer reminder: inject the shared text from dsh/steer.md on a direct user
  *   prompt, mirroring Claude's UserPromptSubmit reminder.
  *
@@ -17,6 +19,7 @@ import { readFile } from 'node:fs/promises';
 import { dirname, isAbsolute, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { randomUUID } from 'node:crypto';
+import { registerStopVerification, registerVerification } from './verification.js';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const DEFAULT_GATE_SCRIPT = join(HERE, '..', '..', 'hooks', 'gate-commit-trellis.py');
@@ -35,6 +38,16 @@ function resolveConfig(config = {}) {
     steerFile: config.steerFile ?? DEFAULT_STEER_FILE,
     gateTimeoutMs: config.gateTimeoutMs ?? 10_000,
     toolNames: config.toolNames ?? ['bash', 'pwsh'],
+    verification: config.verification ?? false,
+    requireVerification: config.requireVerification ?? false,
+    verificationScript: config.verificationScript ?? 'scripts/verify.sh',
+    verificationShell: config.verificationShell ?? (process.platform === 'win32' ? 'pwsh' : 'bash'),
+    verificationTimeoutMs: config.verificationTimeoutMs ?? 120_000,
+    verificationMaxOutputChars: config.verificationMaxOutputChars ?? 64_000,
+    stopVerification: config.stopVerification ?? false,
+    stopVerificationMaxAttempts: config.stopVerificationMaxAttempts ?? 3,
+    stopVerificationMaxOutputChars: config.stopVerificationMaxOutputChars ?? 12_000,
+    mutationToolNames: config.mutationToolNames,
   };
 }
 
@@ -42,8 +55,12 @@ function isGitCommit(command) {
   return typeof command === 'string' && /\bgit\b[\s\S]*\bcommit\b/.test(command);
 }
 
-function run(file, args, { input, env, cwd, timeoutMs }) {
+function run(file, args, { input, env, cwd, timeoutMs, signal, maxOutputChars = 64_000 }) {
   return new Promise((resolvePromise, reject) => {
+    if (signal?.aborted) {
+      reject(new Error('operation aborted'));
+      return;
+    }
     const child = spawn(file, args, {
       cwd,
       env,
@@ -53,30 +70,42 @@ function run(file, args, { input, env, cwd, timeoutMs }) {
     let stdout = '';
     let stderr = '';
     let settled = false;
+    let truncated = false;
+    const append = (current, chunk) => {
+      const next = current + chunk;
+      if (next.length > maxOutputChars) truncated = true;
+      return next.slice(0, maxOutputChars);
+    };
     const finish = (fn, value) => {
       if (settled) return;
       settled = true;
       clearTimeout(timer);
+      signal?.removeEventListener('abort', onAbort);
       fn(value);
+    };
+    const onAbort = () => {
+      child.kill();
+      finish(reject, new Error('operation aborted'));
     };
     const timer = setTimeout(() => {
       child.kill();
       finish(reject, new Error(`timed out after ${timeoutMs}ms`));
     }, timeoutMs);
+    signal?.addEventListener('abort', onAbort, { once: true });
     child.stdout.setEncoding('utf8');
     child.stderr.setEncoding('utf8');
-    child.stdout.on('data', (chunk) => { stdout += chunk; });
-    child.stderr.on('data', (chunk) => { stderr += chunk; });
+    child.stdout.on('data', (chunk) => { stdout = append(stdout, chunk); });
+    child.stderr.on('data', (chunk) => { stderr = append(stderr, chunk); });
     child.on('error', (error) => finish(reject, error));
     child.on('close', (code) => {
-      finish(resolvePromise, { code, stdout, stderr });
+      finish(resolvePromise, { code, stdout, stderr, truncated });
     });
     child.stdin.end(input);
   });
 }
 
 async function resolveCwd(ctx, exec) {
-  const explicit = exec.arguments?.cwd;
+  const explicit = exec.arguments?.workdir ?? exec.arguments?.cwd;
   if (typeof explicit === 'string' && explicit.length > 0) {
     return isAbsolute(explicit) ? explicit : resolve(process.cwd(), explicit);
   }
@@ -105,6 +134,7 @@ async function checkGate(ctx, exec, config) {
       env,
       cwd,
       timeoutMs: config.gateTimeoutMs,
+      signal: exec.signal,
     });
     if (result.code !== 0) {
       if (config.failClosed) {
@@ -164,6 +194,8 @@ async function readSteer(config) {
  */
 export function apply(ctx, userConfig = {}) {
   const config = resolveConfig(userConfig);
+  registerVerification(ctx, config, { resolveCwd, run });
+  registerStopVerification(ctx, config, { resolveCwd, run });
 
   if (config.gate) {
     ctx.on('tools/pre-execute', async (exec, next) => {

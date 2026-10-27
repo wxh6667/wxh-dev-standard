@@ -2,7 +2,7 @@
 #
 # Apply this list to a DSH profile's cordis.patch.yml, or pass it as an
 # additional overlay with `--patch`. It adds:
-#   1. the wxh-dsh-trellis adapter plugin (Trellis commit gate + steer reminder)
+#   1. the wxh-dsh-trellis adapter plugin (Trellis commit gate, stop verification, steer reminder)
 #   2. the personal MCP baseline
 #
 # It intentionally does NOT define model routes or a profile identity; keep
@@ -23,6 +23,14 @@
         steer: true
         failClosed: true
         gateTimeoutMs: 10000
+        verification: true
+        requireVerification: true
+        verificationScript: scripts/verify.sh
+        verificationTimeoutMs: 120000
+        verificationMaxOutputChars: 64000
+        stopVerification: true
+        stopVerificationMaxAttempts: 3
+        stopVerificationMaxOutputChars: 12000
 
     # --- MCP baseline -----------------------------------------------------
     # Mirrors mcp/claude.mcp.example.json and mcp/codex.config.fragment.toml.
@@ -55,7 +63,7 @@
         serverName: serena
         transport: stdio
         command: uvx
-        args: ['-p', '3.13', 'serena-agent', 'start-mcp-server', '--project-from-cwd', '--context', 'claude-code']
+        args: ['-p', '3.13', 'serena-agent', 'start-mcp-server', '--project', !!js process.env.HOME + '/.wxh-dev-standard', '--context', 'claude-code']
         env:
           PATH: !!js process.env.HOME + '/.local/bin:' + (process.env.PATH ?? '')
         failOnStartupError: false

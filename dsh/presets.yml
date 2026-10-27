@@ -8,13 +8,13 @@
 # the skill roots. The model stays whatever the deployment's
 # `agent-default-model` row sets; presets cannot change it.
 #
-# Required rows in every preset:
+# Required rows in coding presets:
 #   agent-instructions — without it the agent never loads AGENTS.md/CLAUDE.md
-#   skill-filesystem + tool-skill — the skill catalog and loader
+#   skill-filesystem + tool-skill — only where the preset needs local skills
 #
 # Install:
 #   cat dsh/presets.yml >> ~/.dsh/profiles/web/cordis.patch.yml
-#   dsh --profile web --dump-config      # expect preset-research/writer/ops
+#   dsh --profile web --dump-config      # expect research/writer/ops/explore/reviewer
 # Restart DSH afterwards; presets apply to sessions created after the restart.
 #
 # Two traps worth knowing before editing this file:
@@ -148,16 +148,20 @@
       name: '@deepseek-ai/dsh-agent-preset'
       config:
         id: ops
-        name: 运维
-        description: 部署与排障：执行命令、改配置、跑构建，按资源与安全边界操作。
+        name: 编码运维
+        description: 默认编码智能体：开发、调试、测试、构建、部署与排障，按任务阶段规划和委派。
         order: 7
         plugins:
           - id: persona
             name: '@deepseek-ai/dsh-persona'
             config:
               prefix: >-
-                你是运维工程师。先看实际状态再动手，改动可回滚，失败直接暴露；
-                重构建或全量测试前确认主机可用内存余量。
+                你是编码代理。先读相关代码和现有模式，再决定改动；非平凡任务先给可执行计划。
+                只做达成目标所需的最小改动，不扩范围、不添加未要求的功能或依赖。
+                改完运行项目验证入口（优先 scripts/verify.sh）和必要的测试/类型检查；失败就继续修。
+                优先沿用现有命名、结构、错误处理和测试方式；不复制旧代码里的坏模式。
+                大范围搜索先委派 explore；完成前用 reviewer 独立审 diff；最终验证由自己完成。
+                报告改了什么、在哪、怎么验证；真实失败和未验证项直接说明。
           - id: agent-instructions
             name: '@deepseek-ai/dsh-agent-instructions'
             config:
@@ -174,6 +178,10 @@
             name: '@deepseek-ai/dsh-tool-fs'
           - id: tool-fs-search
             name: '@deepseek-ai/dsh-tool-fs-search'
+          - id: tool-jobs
+            name: '@deepseek-ai/dsh-tool-jobs'
+          - id: tool-schedule
+            name: '@deepseek-ai/dsh-tool-schedule'
           - id: skill-filesystem
             name: '@deepseek-ai/dsh-skill-filesystem'
           - id: tool-skill
@@ -182,12 +190,96 @@
             name: '@deepseek-ai/dsh-command-goal'
           - id: tool-goal
             name: '@deepseek-ai/dsh-tool-goal'
-          - id: tool-todo
-            name: '@deepseek-ai/dsh-tool-todo'
+          - id: planning
+            name: cordis:group
+            group: true
+            isolate:
+              planMode: true
+            config:
+              - id: plan-mode
+                name: '@deepseek-ai/dsh-plan-mode'
+          - id: compaction
+            name: cordis:group
+            group: true
+            isolate:
+              compaction: true
+              toolResultPruner: true
+            config:
+              - id: compaction-basic
+                name: '@deepseek-ai/dsh-compaction-basic'
+              - id: command-compact
+                name: '@deepseek-ai/dsh-command-compact'
+              - id: tool-result-pruner
+                name: '@deepseek-ai/dsh-compaction-tool-result-pruner'
+          - id: delegation
+            name: cordis:group
+            group: true
+            isolate:
+              workflowEngine: true
+            config:
+              - id: tool-subagent-control
+                name: '@deepseek-ai/dsh-tool-subagent-control'
+              - id: tool-subagent-list-agents
+                name: '@deepseek-ai/dsh-tool-subagent-control/list-agents'
+              - id: tool-subagent
+                name: '@deepseek-ai/dsh-tool-subagent'
+                config:
+                  provider: spawn
+                  toolName: subagent
+                  agentPreset: ops
+                  allowedAgentPresets: [research, writer, ops, explore, reviewer]
+              - id: tool-subagent-fork
+                name: '@deepseek-ai/dsh-tool-subagent'
+                config:
+                  provider: fork
+                  toolName: subagent_fork
+              - id: workflow-ptc
+                name: '@deepseek-ai/dsh-workflow-ptc'
+                config:
+                  provider: spawn
+              - id: tool-workflow
+                name: '@deepseek-ai/dsh-tool-workflow'
           - id: tool-ask-user
             name: '@deepseek-ai/dsh-tool-ask-user'
+          - id: tool-todo
+            name: '@deepseek-ai/dsh-tool-todo'
+          - id: tool-web
+            name: '@deepseek-ai/dsh-tool-web'
+            config:
+              fetch: true
           - id: present
             name: '@deepseek-ai/dsh-tool-present'
+
+    - id: preset-explore
+      name: '@deepseek-ai/dsh-agent-preset'
+      config:
+        id: explore
+        name: 代码探索
+        description: 只读代码探索：定位文件、符号和调用链，返回精确 file:line，不改文件、不执行 shell。
+        order: 8
+        plugins:
+          - id: persona
+            name: '@deepseek-ai/dsh-persona'
+            config:
+              prefix: >-
+                你是只读代码探索子代理。目标是快速定位相关文件、符号、调用链和约束，
+                返回精确的 file:line 与结论。不要修改文件，不要执行 shell，不要给泛泛建议。
+          - id: agent-instructions
+            name: '@deepseek-ai/dsh-agent-instructions'
+            config:
+              maxBytes: 32768
+          - id: time-context
+            name: '@deepseek-ai/dsh-time-context'
+          - id: tool-fs
+            name: '@deepseek-ai/dsh-tool-fs'
+            config:
+              read: true
+              write: false
+              edit: false
+          - id: tool-fs-search
+            name: '@deepseek-ai/dsh-tool-fs-search'
+            config:
+              sampleOverCapGlobResults: false
           - id: compaction
             name: cordis:group
             group: true
@@ -196,3 +288,52 @@
                 name: '@deepseek-ai/dsh-compaction-basic'
               - id: command-compact
                 name: '@deepseek-ai/dsh-command-compact'
+
+    - id: preset-reviewer
+      name: '@deepseek-ai/dsh-agent-preset'
+      config:
+        id: reviewer
+        name: 代码审查
+        description: 只读代码审查：独立审 diff，只报正确性、回归和缺失测试，不改文件、不执行 shell。
+        order: 9
+        plugins:
+          - id: persona
+            name: '@deepseek-ai/dsh-persona'
+            config:
+              prefix: >-
+                你是独立代码审查子代理，没有参与实现。只读检查 diff 与相关代码；
+                只报会导致错误、回归、安全问题或缺失关键测试的问题，跳过风格偏好。
+                给出 file:line、原因和最小修复建议。不要修改文件，不要执行 shell。
+          - id: agent-instructions
+            name: '@deepseek-ai/dsh-agent-instructions'
+            config:
+              maxBytes: 32768
+          - id: time-context
+            name: '@deepseek-ai/dsh-time-context'
+          - id: tool-fs
+            name: '@deepseek-ai/dsh-tool-fs'
+            config:
+              read: true
+              write: false
+              edit: false
+          - id: tool-fs-search
+            name: '@deepseek-ai/dsh-tool-fs-search'
+            config:
+              sampleOverCapGlobResults: false
+          - id: skill-filesystem
+            name: '@deepseek-ai/dsh-skill-filesystem'
+          - id: tool-skill
+            name: '@deepseek-ai/dsh-tool-skill'
+          - id: compaction
+            name: cordis:group
+            group: true
+            config:
+              - id: compaction-basic
+                name: '@deepseek-ai/dsh-compaction-basic'
+              - id: command-compact
+                name: '@deepseek-ai/dsh-command-compact'
+
+- id: agent-preset-registry
+  name: '@deepseek-ai/dsh-agent-preset-registry'
+  config:
+    default: ops

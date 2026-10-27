@@ -1,19 +1,43 @@
 # Project Instructions
 
-Keep this file project-specific. Reusable workflows should come from wxh-dev-standard Skills rather than being copied here.
+Keep this file project-specific. Reusable workflows live in wxh-dev-standard Skills; do not copy them here. Only record facts an agent cannot derive by reading the repository.
 
-## Project facts
+## Commands
 
-- Start command: `<existing command>`
-- Test command: `<existing command>`
-- Frontend path: `<path or n/a>`
-- Backend path: `<path or n/a>`
-- Database/migrations: `<path or n/a>`
+- Install: `<command>`
+- Run locally: `<command>`
+- Test one file: `<command>`
+- Test all: `<command>`
+- Typecheck: `<command or n/a>`
+- Lint / format check: `<command or n/a>`
+- Build: `<command>`
+- Definition of done: `<verify script or command>`
+
+## Layout
+
+- Entry point: `<path>`
+- Frontend: `<path or n/a>`
+- Backend / API: `<path or n/a>`
+- Database / migrations: `<path or n/a>`
+- Generated files (do not edit): `<path or n/a>`
 - Production compose: `docker-compose.yml`
 - Production image: `registry.cn-shanghai.aliyuncs.com/heilaowang/<project>`
 
-## Working rules
+## Conventions
 
-Read existing code and scripts before editing. Prefer modifying existing business/start/deploy logic over adding parallel replacements. Check project-level CodeGraph/Trellis initialization before broad changes when those tools are installed. Never commit secrets or machine-specific credentials.
+- `<project-specific naming, error handling, or module boundary>`
+- `<existing pattern to follow in new code>`
+- `<pattern that exists but must not be copied>`
 
-Keep only facts that differ for this project. Do not duplicate generic Docker/CNB/Git/testing workflows already supplied by Skills.
+## Gotchas
+
+- `<environment variable or local service required by tests>`
+- `<command that looks safe but writes tracked files>`
+- `<test or build step that is slow or order-dependent>`
+
+## Deploy
+
+- `<how production is built and released>`
+- `<post-deploy check>`
+
+Keep this file under roughly 60 lines. If a rule must hold every time, put it in a hook or CI check instead of relying on this file.

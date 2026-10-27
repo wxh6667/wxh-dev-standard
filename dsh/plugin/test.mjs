@@ -37,9 +37,9 @@ assert.ok(pre, 'tools/pre-execute handler registered');
 const post = handlers.get('agent/pre-step');
 assert.ok(post, 'agent/pre-step handler registered');
 
-const execution = (sessionId, command = 'git commit -m test') => ({
+const execution = (sessionId, command = 'git commit -m test', workdir) => ({
   name: 'bash',
-  arguments: { command },
+  arguments: { command, ...workdir === undefined ? {} : { workdir } },
   agent: { session: { header: { id: sessionId } } },
   signal: new AbortController().signal,
 });
@@ -68,6 +68,13 @@ await pre(execution('no-task-session', 'echo hello'), async () => {
   return { kind: 'allow' };
 });
 assert.equal(nonCommitNext, true, 'non-commit command should pass through');
+
+workingDirectory = activeRoot;
+const workdirDenied = await pre(execution('workdir-session', 'git commit -m test', noTaskRoot), async () => ({ kind: 'allow' }));
+assert.equal(workdirDenied.kind, 'deny', 'explicit workdir must select the checked Trellis root');
+workingDirectory = noTaskRoot;
+const workdirAllowed = await pre(execution('workdir-session', 'git commit -m test', activeRoot), async () => ({ kind: 'allow' }));
+assert.equal(workdirAllowed.kind, 'allow', 'active task in explicit workdir must be honored');
 
 const original = { id: 'user-message', role: 'user', content: [{ type: 'text', text: 'hi' }], source: { kind: 'user' } };
 const steered = await post({ agent: {}, messages: [original], signal: new AbortController().signal }, async () => ({

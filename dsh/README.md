@@ -11,6 +11,7 @@ not replace Trellis's native DSH support.
 | Global instructions | wxh-dev-standard | `scripts/sync-global-instructions.py --dsh` writes `$DSH_HOME/AGENTS.md` (default `~/.dsh/AGENTS.md`); `--all` includes it |
 | Skills | wxh-dev-standard | already discovered through `~/.agents/skills` |
 | Commit gate | wxh-dev-standard | this plugin, via `tools/pre-execute` |
+| Stop verification | wxh-dev-standard | this plugin, via `agent/turn-stopping` |
 | Steer reminder | wxh-dev-standard | this plugin, via `agent/pre-step` |
 | MCP baseline | wxh-dev-standard | `dsh/cordis.patch.yml` |
 
@@ -52,7 +53,7 @@ settings untouched.
 
 ## Agent presets
 
-`dsh/presets.yml` adds three role presets beside the shipped `standard` / `ptc`
+`dsh/presets.yml` adds five role presets beside the shipped `standard` / `ptc`
 / `minimal` / `cordis` cards. Each entry must stay inside an `- insert:` list:
 a bare `- id: preset-…` entry is a patch *target*, and DSH reports
 `entry "preset-…" not found` for ids that no layer defines yet.
@@ -61,16 +62,20 @@ a bare `- id: preset-…` entry is a patch *target*, and DSH reports
 |---|---|---|---|
 | `research` | 调研分析员 | read-only fs, fs-search, web, todo, ask-user, present, subagent | 调研、尽调、选型、读代码取证 |
 | `writer` | 中文文档写作者 | read/write fs, fs-search, web, todo, ask-user, present | 中文交付物、文档、PPT 文案 |
-| `ops` | 运维工程师 | bash/pwsh, read/write fs, fs-search, goal, todo | 部署、排障、构建、改配置 |
+| `ops` | 编码代理 | bash/pwsh, read/write fs, fs-search, web, goal, plan, todo, subagent | 默认编码、调试、构建、部署 |
+| `explore` | 代码探索 | read-only fs, fs-search | 大范围定位文件与调用链，返回精确 file:line |
+| `reviewer` | 代码审查 | read-only fs, fs-search, code-review skill | 独立审 diff，只报正确性问题 |
 
-Deliberate omissions: `research` and `writer` have no shell and no plan mode;
-`writer` has no goal or subagent; `ops` has no web, plan mode, subagent or
-workflow. `agent-instructions` is mandatory in every preset — without it the
-agent never loads `AGENTS.md`/`CLAUDE.md`, so the global rules silently
-disappear.
+Deliberate omissions: `research` and `writer` have no shell; `writer` has no
+goal or subagent; `explore` and `reviewer` are read-only and have no shell;
+`ops` has shell, web, plan mode and delegation. `agent-instructions` is
+mandatory in every preset — without it the agent never loads
+`AGENTS.md`/`CLAUDE.md`, so the global rules silently disappear. `explore` is
+deliberately skill-free to keep its catalog small; `reviewer` loads the skill
+catalog because it uses `code-review`.
 
-Skill discovery is left at the default roots, so all installed skills stay
-reachable from every preset. Narrow a preset with `customSkillDirs` plus
+Skill discovery is left at the default roots where a preset mounts skill rows,
+so installed skills stay reachable. Narrow a preset with `customSkillDirs` plus
 `includeDefaultRoots: false` only when catalog noise is a measured problem.
 
 Presets cannot change the model: that stays on the deployment's
@@ -79,12 +84,16 @@ Presets cannot change the model: that stays on the deployment's
 ```bash
 # back up first, then append and check the composition
 cat $HOME/.wxh-dev-standard/dsh/presets.yml >> ~/.dsh/profiles/web/cordis.patch.yml
-dsh --profile web --dump-config | grep -E "id: research|id: writer|id: ops"
+dsh --profile web --dump-config | grep -E "id: (research|writer|ops|explore|reviewer)"
 ```
 
-Restart DSH afterwards. In the GUI the three cards appear under the custom
+If the profile already contains the preset block, replace from the
+`# wxh-dev-standard agent presets` marker to EOF instead of appending a
+second copy.
+
+Restart DSH afterwards. In the GUI the five cards appear under the custom
 group in Settings → Agent presets; selection is per session, and the default
-stays on `standard` unless changed there.
+stays on `ops` unless changed there.
 
 ## MCP baseline
 
@@ -101,9 +110,10 @@ Prerequisites:
 - `CONTEXT7_API_KEY` in the launch environment if you use an authenticated
   Context7 key; the overlay passes it explicitly because DSH scrubs `*KEY*` /
   `*TOKEN*` names from the ambient child environment.
-- `serena` uses `--project-from-cwd` and the `claude-code` context because
-  Serena has no DSH-specific context. Run DSH from the repository root if you
-  need Serena's project-scoped tools.
+- `serena` uses the `claude-code` context because Serena has no DSH-specific
+  context. DSH starts one MCP process for multiple sessions, so the overlay
+  pins `--project` to this repository instead of relying on the launcher's cwd;
+  this also disables project switching and cross-session project-state changes.
 
 `failOnStartupError: false` keeps a missing optional server from stopping the
 harness. A failed server simply contributes no tools.
@@ -124,6 +134,34 @@ Behavior:
   output.
 - Non-commit shell calls are passed through without spawning Python.
 
+## Stop verification
+
+When `stopVerification` is on, the plugin runs the project verification
+entrypoint from `agent/turn-stopping` before an otherwise completed turn
+closes. It runs only when the turn contains a mutation: `write`, `edit`,
+`str_replace_editor`, Serena mutators, or a `bash`/`pwsh` call whose command
+looks mutating. A passing `run_checks` after the last mutation also skips it.
+
+A failed check steers the model with the output and keeps the turn open, up to
+`stopVerificationMaxAttempts` (default 3). The last attempt carries a final
+notice; after that the plugin stops rerunning and allows the turn to end.
+Subagent sessions are skipped; the main session verifies after they report.
+
+If the project has no `scripts/verify.sh`, the plugin skips the check, logs a
+warning, and injects a one-time notice. A missing entrypoint never blocks every
+project. The shell heuristic is conservative: unknown commands count as
+mutating, while obvious read-only commands (`git status`, `git diff`, `ls`,
+test runners) do not.
+
+```yaml
+stopVerification: true
+stopVerificationMaxAttempts: 3
+stopVerificationMaxOutputChars: 12000
+```
+
+`stopVerification` needs `verification: true`; it reuses
+`verificationScript`, `verificationShell`, and `verificationTimeoutMs`.
+
 ## Steer reminder
 
 The plugin injects `dsh/steer.md` on a direct user prompt, wrapped in
@@ -133,10 +171,10 @@ step. Disable it with `steer: false` in the plugin config.
 ## Test locally
 
 ```bash
-node dsh/plugin/test.mjs
+bash scripts/verify.sh
 node dsh/mcp-probe.mjs
 ```
 
-The test uses a temporary Trellis-shaped fixture and the real
-`hooks/gate-commit-trellis.py`; it does not call a model or need an existing
-Trellis project.
+`scripts/verify.sh` runs syntax checks, the plugin tests, the stop-verification
+tests, and the instruction-sync tests. The tests use temporary fixtures and do
+not call a model or need an existing Trellis project.

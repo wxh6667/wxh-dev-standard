@@ -1,11 +1,23 @@
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises';
+import { existsSync, realpathSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, dirname } from 'node:path';
 import { apply } from './index.js';
 
-const require = createRequire(process.env.DSH_CLI_PACKAGE ?? join(process.env.HOME, 'dsh', 'package.json'));
+// 解析 dsh CLI 所在的包（npx 缓存 / ~/dsh / DSH_CLI_PACKAGE 指定路径），用于 require @deepseek-ai/dsh-tools。
+function resolveDshPackageJson() {
+  if (process.env.DSH_CLI_PACKAGE) return process.env.DSH_CLI_PACKAGE;
+  const legacy = join(process.env.HOME, 'dsh', 'package.json');
+  if (existsSync(legacy)) return legacy;
+  const bin = execFileSync('sh', ['-c', 'command -v dsh'], { encoding: 'utf8' }).trim();
+  // <pkg>/lib/bin.js → <pkg>/package.json
+  return join(dirname(realpathSync(bin)), '..', 'package.json');
+}
+
+const require = createRequire(resolveDshPackageJson());
 const { assertSupportedJsonSchema, validateJsonSchemaValue } = require('@deepseek-ai/dsh-tools');
 
 const root = await mkdtemp(join(tmpdir(), 'wxh-verification-fixture-'));

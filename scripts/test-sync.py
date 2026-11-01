@@ -131,6 +131,11 @@ class SyncTests(unittest.TestCase):
         module.register_settings(name, settings)
         self.assertEqual(settings, before)
 
+    def test_steer_text_matches_dsh_source_of_truth(self):
+        hook = load("hooks/steer-reminder.py")
+        steer_md = (ROOT / "dsh/steer.md").read_text(encoding="utf-8")
+        self.assertEqual(hook.STEER_TEXT.strip(), steer_md.strip())
+
     def test_invalid_settings_are_rejected(self):
         module = load("scripts/sync-claude-hooks.py")
         for value in ({"permissions": []}, {"permissions": {"ask": "custom"}}, {"permissions": {"ask": [1]}}, {"permissions": {"allow": "Bash"}}, {"permissions": {"allow": [1]}}):
@@ -301,7 +306,7 @@ class SyncTests(unittest.TestCase):
             for relative, source in ((".codex/AGENTS.md", "AGENTS.md"), (".claude/CLAUDE.md", "CLAUDE.md"), (".pi/agent/AGENTS.md", "AGENTS.md"), (".zcode/AGENTS.md", "zcode/AGENTS.md")):
                 self.assertEqual((home / relative).read_bytes(), (ROOT / source).read_bytes())
             for relative in (".agents/skills", ".claude/skills"):
-                self.assertEqual(len(list((home / relative).iterdir())), 70)
+                self.assertEqual(len(list((home / relative).iterdir())), len(load("scripts/sync-skills.py").skill_dirs()))
                 for skill in (home / relative).iterdir():
                     self.assertTrue(skill.is_symlink())
                     self.assertTrue((skill / "SKILL.md").is_file())

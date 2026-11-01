@@ -1,6 +1,6 @@
 ---
 name: writing-for-agents
-description: 用于组织 Agent 使用的文档与 Skill 正文：职责划分、按需引用和可验证的完成条件。提示词、Base Instructions 与长期规则的内容变更用 write-instructions-zh。
+description: 用于组织 Agent 使用的文档与 Skill 正文，以及审查某个 Skill 的范围、触发方式、引用和完成证据：职责划分、按需引用和可验证的完成条件。提示词、Base Instructions 与长期规则的内容变更用 write-instructions-zh。
 ---
 
 # Writing for Agents
@@ -28,3 +28,11 @@ description: 用于组织 Agent 使用的文档与 Skill 正文：职责划分�
 优先直接描述目标动作，必要禁令明确保留。措辞、指令位置和加载方式对目标模型的效果通过实际任务验证，不把否定必然失效或正文越短越好当作事实。
 
 创建或修改 Skill 元数据时读取 `SKILL-MECHANICS.md`，按实际宿主核对，不把某端调用政策推广到所有端。
+
+## 审查单个 Skill
+
+- description 说明实际任务和触发条件；宽泛同义词不能把专项 Skill 变成通用流程。
+- 一个 Skill 覆盖一个连贯的工作单元。只有触发方式、版本合同或独立任务不同才拆分，只合并职责真正重复的部分。
+- 正文保留领域不变量和可检查的完成证据，详细示例按明确条件加载。
+- 自动触发与显式调用按实际宿主选择：Claude 的 `disable-model-invocation` 与 Codex 的 `policy.allow_implicit_invocation` 是两个独立设置，其他宿主需查证而不是假设。
+- 校验真实引用和元数据，再用正例、反例和边界任务对比行为。文件有效、Skill 已加载、任务执行正确是三个不同结论。

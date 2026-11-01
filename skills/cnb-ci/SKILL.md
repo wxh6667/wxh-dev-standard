@@ -1,35 +1,39 @@
 ---
 name: cnb-ci
-description: Build and publish production Docker images with CNB, and trigger/monitor any CNB pipeline (e.g. Android APK artifact builds) via its build API. Use when creating or fixing .cnb.yml, publishing to registry.cn-shanghai.aliyuncs.com/heilaowang, validating a production image without building it on the developer machine, or triggering/checking CNB builds from the CLI.
+description: Work with CNB (cnb.cool) cloud builds. Use when creating, fixing or reviewing .cnb.yml; publishing production Docker images to registry.cn-shanghai.aliyuncs.com/heilaowang; building Android APK or other artifacts on CNB and uploading to R2 or build attachments; wiring CNB secrets (guo-projects/secrets imports, allow_slugs/allow_events/allow_branches); triggering, monitoring or reading logs of a CNB build via its API; or diagnosing CNB failures (Prepare errors, Maven/Docker 429, 10-minute silent kill, BuildKit push errors). 触发 CNB 构建、云构建、流水线、镜像发布、构建日志、.cnb.yml 报错时使用。
 ---
 
 # CNB CI
 
-Production build path: `git push -> CNB -> docker build/buildx -> registry -> server pull`. The Build API below applies to any CNB pipeline, not just Docker images — e.g. an Android repo whose `.cnb.yml` packages an APK and uploads it to R2 / pipeline attachments. Such setups usually live in a separate cloud-build mirror repo (the source repo has no `.cnb.yml`); sync the source branch to the mirror first, then trigger by event name.
+Production build path: `git push -> CNB -> docker build/buildx -> registry -> server pull`. The same pipeline engine also builds non-image artifacts (Android APK, offline image tarballs) and uploads them to R2 or build attachments. Such projects often use a separate cloud-build mirror repo; sync the source branch there first, then trigger by event name.
+
+Read only what the task needs:
+
+| Task | Read |
+| --- | --- |
+| Write or change `.cnb.yml`: events, runner, services, secrets, lock, retry, Docker/APK/offline-package patterns | `references/pipeline-patterns.md` |
+| A build failed or behaves oddly | `references/troubleshooting.md` |
+| Trigger, poll or read logs through the API | `references/build-api.md`, or run `scripts/cnb-build.sh` |
+
+Starting template for a plain image pipeline: `../../templates/project/.cnb.yml.example`. Adapt it to the real project instead of forcing it unchanged.
 
 ## Rules
 
 - Keep `.cnb.yml` in the repository root and Docker build files under `docker/`.
 - Use CNB's Docker service when the pipeline needs `docker build`, `buildx`, `login` or `push`.
 - Default image namespace is `registry.cn-shanghai.aliyuncs.com/heilaowang/<project>` unless the project specifies another target.
-- Registry username/password/token must come from CNB secrets/imported secure variables. Never commit them.
-- Publish an immutable version tag derived from the commit/version when practical and optionally update `latest` after a successful build.
-- Do not work around CI failures by building the production image locally. Read the failing stage, fix code/config, commit, push and rerun CNB until it passes.
+- Registry and signing credentials come from CNB secrets imported from the private `guo-projects/secrets` repo. Never commit them, echo them, or leave them in the environment of untrusted build steps.
+- Publish an immutable version tag derived from the commit or version, and update `latest` only after the build succeeds.
+- Do not work around CI failures by building the production image locally. Read the failing stage, fix code or config, commit, push and rerun CNB until it passes.
+- Triggering a build, pushing to a CNB repo and editing the secrets repo change shared state. Do them only when the user asked for the build or publish.
 
-## Build API (trigger, monitor, read logs)
+## Workflow
 
-All calls go to `https://api.cnb.cool` with `Authorization: Bearer <CNB_TOKEN>`; `Accept: application/vnd.cnb.api+json` is optional — plain JSON responses work without it.
-
-Token sources, in order: `CNB_TOKEN` env var → project `.cnb/.env` → `~/.config/cnb/env` → `~/.cnb/.env` → `git credential fill` for host `cnb.cool` (username `cnb`, token as password). `~/.config/cnb/env` holds an `export CNB_TOKEN=...` line sourced by the shell profile, so the env var is usually just that file already loaded; check with `ls ~/.config/cnb/env` and `echo ${CNB_TOKEN:+set}` before hunting further. Minimal CI tokens cover repo read/write, build start and build status; they usually lack `repo-cnb-history:r`.
-
-- Trigger: `POST /{org}/{repo}/-/build/start` with body `{"branch":"main","event":"<event name>","sync":"false","title":"..."}` → returns `{sn, buildLogUrl, success, message}` where `message` is `"cnb received, but didn't finish build yet"` on accept — trigger is async, poll status for the outcome.
-- Status: `GET /{org}/{repo}/-/build/status/{sn}` → `.status` (`pending|start|success|error|cancel`) and `.pipelinesStatus.{sn}-001` with `stages[]` (`id` such as `prepare`, `stage-0`, plus per-stage status `pending|start|success|error|skipped` and duration in ms).
-- Stage log: `GET /{org}/{repo}/-/build/logs/stage/{sn}/{sn}-001/{stageId}` — note the `stage/` path segment; `{sn}-001` is the pipeline id from the status response and `{stageId}` comes from its stages list. Paginate with `X-Page-Number` / `X-Page-Size` request headers. Response is `{"content": ["<line>", ...], "duration": <ms>}`; lines contain ANSI color codes — strip `\x1b[…m` before parsing.
-- Pitfall: the documented list endpoint `GET /{org}/{repo}/-/build/logs?buildId=...` requires token scope `repo-cnb-history:r` and returns 403 for minimal CI tokens; the `/stage/` variant above works with plain repo read access. Path-style `/{repo}/-/build/logs/{sn}` does not exist (404).
-- Web UI log page: `https://cnb.cool/{org}/{repo}/-/build/logs/{sn}` — needs a browser login session, tokens do not work there.
+1. Confirm what the pipeline must produce (image, tarball, APK) and which event triggers it (`push`, `api_trigger`, or a named `api_trigger_<name>`).
+2. Write or fix `.cnb.yml` using `references/pipeline-patterns.md`; confirm the secrets file allows this repo, branch and event.
+3. Sync the commit to CNB (use `-o ci.skip` when you will trigger by API) and trigger the event.
+4. Poll to a terminal status. On `error`, read the failing stage log, match it against `references/troubleshooting.md`, fix the cause, and rerun.
 
 ## Validation
 
-Confirm the pipeline built the intended business image, pushed the expected tags, and the remote registry image can be pulled by the deployment host. If frontend/backend are part of the same business runtime image, verify both were built into that image.
-
-Use `../../templates/project/.cnb.yml.example` as a starting point, then adapt build commands to the real project rather than forcing the template unchanged.
+Confirm the pipeline built the intended business image, pushed the expected tags, and that the registry image can be pulled by the deployment host. If frontend and backend belong to the same runtime image, verify both were built into it. For artifact pipelines confirm the uploaded files exist at the expected R2 key or attachment name and their checksum matches.

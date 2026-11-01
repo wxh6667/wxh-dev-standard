@@ -1,6 +1,6 @@
 ---
 name: domain-modeling
-description: Build and sharpen a project's domain model. Use when discussing codebase terminology, writing or editing a CONTEXT.md, or recording or editing an ADR.
+description: Build and sharpen a project's domain model. Use when discussing codebase terminology, writing or editing a CONTEXT.md or glossary, extracting a ubiquitous-language glossary from the conversation, or recording or editing an ADR.
 ---
 
 # Domain Modeling
@@ -72,3 +72,14 @@ Only offer to create an ADR when all three are true:
 3. **The result of a real trade-off**: there were genuine alternatives and you picked one for specific reasons
 
 If any of the three is missing, skip the ADR. Use the format in [ADR-FORMAT.md](./ADR-FORMAT.md).
+
+## Extracting a glossary from the conversation
+
+When the user asks to extract or harden a ubiquitous-language glossary (DDD terms, "domain model", "ubiquitous language") rather than to grill a design, run this one-shot pass instead of the interview loop. It updates the same authoritative glossary; never create a second one.
+
+1. Scan the conversation for domain-relevant nouns, verbs and concepts. Skip module and class names unless they carry domain meaning, and skip generic programming terms.
+2. Identify problems: one word used for different concepts, different words for the same concept, vague or overloaded terms.
+3. Propose opinionated canonical terms; list the rejected aliases under `_Avoid_`.
+4. Update the existing glossary in its own format (CONTEXT.md per [CONTEXT-FORMAT.md](./CONTEXT-FORMAT.md) when none exists). Keep definitions to one sentence: what the term IS, not what it does. Group terms into separate headings when natural clusters appear.
+5. Add or refresh a short example dialogue (3-5 exchanges, dev and domain expert) showing the terms used precisely, and a "Flagged ambiguities" list with a recommendation for each conflict.
+6. Output a short summary inline. On re-run in the same conversation, read the current glossary first, merge new terms, update definitions whose understanding changed, and preserve unrelated content.

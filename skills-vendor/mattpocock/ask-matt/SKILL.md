@@ -10,17 +10,17 @@ Start from the user's goal and the project's existing task state. Recommend the 
 
 | Need | Relevant skill |
 |---|---|
-| Resolve open design decisions | `grilling`, or `grill-with-docs` when durable project notes are needed |
+| Resolve open design decisions | `grilling`; add `domain-modeling` when durable project notes (glossary, ADR) are needed |
 | Answer a question with external evidence | `research` |
 | Test a design question with runnable code | `prototype` |
-| Compare module interfaces | `design-an-interface`, with `codebase-design` for architecture vocabulary |
+| Compare module interfaces | `codebase-design` (its DESIGN-IT-TWICE.md covers candidate comparison) |
 | Record a settled specification | `to-spec` |
 | Split a large approved effort into verifiable work | `to-tickets` |
 | Implement agreed behavior | `implement`; `tdd` when test-first work is requested or useful |
 | Diagnose an unclear or recurring fault | `diagnosing-bugs` |
 | Review changes or architecture | the available `code-review`, or `improve-codebase-architecture` for an explicit architecture survey |
 | Resolve an existing merge/rebase | `resolving-merge-conflicts` |
-| Clarify domain language | `domain-modeling`; `ubiquitous-language` for a glossary extraction |
+| Clarify domain language | `domain-modeling`, including glossary extraction from the conversation |
 | Prepare questions or human-only setup | `to-questionnaire`, `wizard` |
 | Transfer context or explain again | `handoff`, `wait-what` |
 

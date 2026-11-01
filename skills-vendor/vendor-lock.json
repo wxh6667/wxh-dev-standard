@@ -35,9 +35,9 @@
       "upstream_prefix": "skills/<category>/; local category directories were flattened",
       "upstream_head": "5beb35b040e3de97e54fa9e386d7e42d15c295c2",
       "comparison": {
-        "identical_files": 65,
-        "locally_modified_files": 27,
-        "local_only_files": 15
+        "identical_files": 58,
+        "locally_modified_files": 28,
+        "local_only_files": 6
       },
       "local_modifications": [
         "ask-matt/SKILL.md",
@@ -49,6 +49,7 @@
         "git-guardrails-claude-code/SKILL.md",
         "git-guardrails-claude-code/scripts/block-dangerous-git.sh",
         "grilling/SKILL.md",
+        "handoff/SKILL.md",
         "implement/SKILL.md",
         "improve-codebase-architecture/SKILL.md",
         "prototype/SKILL.md",
@@ -69,13 +70,9 @@
         "writing-shape/SKILL.md"
       ],
       "local_only_unresolved_skills": [
-        "design-an-interface",
         "edit-article",
-        "obsidian-vault",
         "qa",
-        "request-refactor-plan",
-        "ubiquitous-language",
-        "writing-great-skills"
+        "request-refactor-plan"
       ],
       "excluded_upstream_skills": [
         "grill-me",
@@ -84,7 +81,22 @@
         "pr",
         "retro"
       ],
-      "notes": "The base explains all 107 local files by identical content, a recorded local modification, or one of the seven unresolved local-only skills. It does not assert an exact origin for those seven skills. Future updates must map category paths and merge local policy changes file by file."
+      "notes": "The base explained all 107 local files on 2026-10-26 by identical content, a recorded local modification, or one of seven unresolved local-only skills; four of those seven were consolidated on 2026-11-01 (see local_consolidations). It does not assert an exact origin for the remaining three. Future updates must map category paths and merge local policy changes file by file.",
+      "local_consolidations": {
+        "date": "2026-11-01",
+        "note": "Duplicate or unused skills were merged or removed locally on 2026-11-01; files moved to the system trash. Counts in comparison were adjusted by the removed files per category (6 identical, 9 local-only) and handoff/SKILL.md moved from identical to locally modified; upstream was not re-fetched.",
+        "merged": {
+          "claude-handoff": "handoff (background-agent delivery mode)",
+          "ubiquitous-language": "domain-modeling (glossary extraction section)",
+          "grill-with-docs": "grilling + domain-modeling",
+          "design-an-interface": "codebase-design/DESIGN-IT-TWICE.md",
+          "writing-great-skills": "writing-for-agents (single-skill review section)"
+        },
+        "removed": [
+          "obsidian-vault",
+          "scaffold-exercises"
+        ]
+      }
     },
     "app-shell-ui": {
       "repo": "https://github.com/yg2224/app-shell-ui",

@@ -1,8 +1,8 @@
 # Skills
 
-本目录是**自研 skill**（14 个），采用通用 Agent Skills 结构，默认安装到 Agent 的**全局发现目录**，跨项目复用；业务项目不需要复制整套 `skills/`。第三方 skill 快照在兄弟目录 [`skills-vendor/`](../skills-vendor/SOURCES.md)，由 `scripts/sync-skills.py` 一并分发。
+本目录是**自研 skill**（15 个），采用通用 Agent Skills 结构，默认安装到 Agent 的**全局发现目录**，跨项目复用；业务项目不需要复制整套 `skills/`。第三方 skill 快照在兄弟目录 [`skills-vendor/`](../skills-vendor/SOURCES.md)，由 `scripts/sync-skills.py` 一并分发。
 
-## 自研 Skills（14 个）
+## 自研 Skills（15 个）
 
 只保留**官方插件、系统能力和第三方快照都不涵盖**的自有工具与规范：
 
@@ -12,7 +12,7 @@
 
 ### 构建与部署规范
 
-- **cnb-ci** - CNB 构建并发布阿里云 Registry 镜像（`registry.cn-shanghai.aliyuncs.com/heilaowang`）
+- **cnb-ci** - CNB 云构建全流程：`.cnb.yml` 写法（镜像、APK、离线包、secrets、lock、retry、保活）、构建 API 触发与日志（附 `scripts/cnb-build.sh`）、常见失败排障；镜像发布到 `registry.cn-shanghai.aliyuncs.com/heilaowang`
 - **docker-build** - 一个独立业务运行类型一个最终自定义镜像规范；生产镜像不在本地构建
 - **deployment** - 使用 `docker-compose.yml + .env` 拉取并启动线上服务
 
@@ -20,7 +20,7 @@
 
 - **agent-capability-integration** - 评估外部 Agent 包与工作流，将确有增量的机制按需吸收到现有 Skill、规则或执行层，保留原有行为与资源关系
 - **code-review** - 自研中文评审框架（合同恢复、风险面、证据强度、兜底路径专项审查）
-- **context7-docs** - 查第三方库/框架/SDK 最新文档；API 用法、配置、版本迁移优先走 Context7，不凭记忆或 WebSearch 回答
+- **context7-docs** - 写、改、审查涉及第三方库/框架/SDK/CLI 的代码或回答其用法、配置、版本迁移时，默认先走 Context7 查目标版本文档，不凭记忆或 WebSearch 回答
 - **batch-execution** - 批量相似任务处理，防单点错误扩散
 - **company-research-brief** - 公司公开资料调研与尽调简报
 - **github-solution-research** - 到 GitHub issues/PR/discussions 找现成方案
@@ -28,6 +28,7 @@
 - **workflow-route-mapper** - 分叉/路线/探索树持久化
 - **xy-axis-thinking** - 归因、目标与同期参照比较
 - **write-instructions-zh** - 编写维护 AGENTS.md / 系统提示词 / 长期规则
+- **dsh-preset-config** - 修改 DeepSeek Harness（dsh）的 preset、profile 与插件配置，处理相关报错
 
 ## 设计原则
 

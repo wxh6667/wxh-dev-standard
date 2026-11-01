@@ -58,5 +58,35 @@
     "skill": "write-instructions-zh",
     "should_trigger": false,
     "prompt": "只审查这段 Python 实现的运行时 bug，不修改任何提示词或 Agent 指令。"
+  },
+  {
+    "id": "context7-write-library-code",
+    "skill": "context7-docs",
+    "should_trigger": true,
+    "prompt": "用 Prisma 给这个服务加一个带事务的批量写入，写出代码。"
+  },
+  {
+    "id": "context7-library-error",
+    "skill": "context7-docs",
+    "should_trigger": true,
+    "prompt": "升级 Vite 后构建报 plugin 相关错误，帮我确认新版的配置写法。"
+  },
+  {
+    "id": "cnb-ci-fix-pipeline",
+    "skill": "cnb-ci",
+    "should_trigger": true,
+    "prompt": "这个仓库的 .cnb.yml 构建在 Prepare 阶段失败，帮我修好并重新触发。"
+  },
+  {
+    "id": "cnb-ci-apk-build",
+    "skill": "cnb-ci",
+    "should_trigger": true,
+    "prompt": "在 CNB 上构建签名 Android APK 并上传到 R2，写流水线。"
+  },
+  {
+    "id": "cnb-ci-not-compose",
+    "skill": "cnb-ci",
+    "should_trigger": false,
+    "prompt": "修改 docker-compose.yml 的端口映射和重启策略，镜像已经发布。"
   }
 ]

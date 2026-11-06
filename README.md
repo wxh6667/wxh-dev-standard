@@ -29,11 +29,11 @@ Codex、Claude Code、ZCode、PI-Desktop 与 DSH 保留各自的指令入口、�
 
 五端共用同一套基础约束与重叠消解规则：这些文件都不是"只约束 wxh-dev-standard 这个仓库自身"的项目规则，而是跨项目长期行为约束；基础约束各端一致，工具与能力边界各端同款。编辑共享规则时只修改根目录 `AGENTS.md` 首行后的正文，再运行 `python3 scripts/render-global-instructions.py --write` 生成 Claude/ZCode 文件；CI 用 `--check` 防止手工修改造成漂移。
 
-## Skills 体系（自研 15 + 第三方快照 55，共 70 个）
+## Skills 体系（自研 18 + 第三方快照 48，共 66 个）
 
 `skills/` 是**自研 skill**（官方插件和基本能力不涵盖的业务工具、规范与个人常用流程），`scripts/sync-skills.py` 把两者一并以符号链接分发到各端全局目录：
 
-- **skills/**（15 个）：ai-context-init、cnb-ci、docker-build、deployment（业务四件套）；code-review（自研评审框架）、context7-docs、batch-execution、company-research-brief、github-solution-research、moyu、workflow-route-mapper、xy-axis-thinking、write-instructions-zh（通用增强）；agent-capability-integration、dsh-preset-config（dsh 配套）。
+- **skills/**（18 个）：ai-context-init、cnb-ci、docker-build、deployment（业务四件套）；code-review（自研评审框架）、context7-docs、batch-execution、parallel-delegation、company-research-brief、github-solution-research、moyu、workflow-route-mapper、xy-axis-thinking、write-instructions-zh（通用增强）；agent-capability-integration、dsh-preset-config（dsh 配套）；fingerprint-chromium、win-vm（本机环境）。
 - **skills-vendor/**（48 个）：第三方 skill 快照，一并入仓供离线一键安装——cloudflare/ 14 个（Workers 平台全家桶，含 web-perf 前端性能审计）、mattpocock/ 33 个（工程流程系）、app-shell-ui/ 1 个（前端双模式 UI 规范）。来源与同步方法见 [`skills-vendor/SOURCES.md`](skills-vendor/SOURCES.md)。
 
 其他开发能力（发现问题、解决问题、构建、复审）由各端系统能力和官方插件处理。
@@ -170,7 +170,7 @@ doctor 默认只读，不联网、不 fetch、不启动 MCP 或 hook；Git 结�
 AGENTS.md     Codex 全局长期指令标准源，安装时同步到 ~/.codex/AGENTS.md；PI-Desktop 复用同一份，同步到 ~/.pi/agent/AGENTS.md
 CLAUDE.md     Claude Code 全局指令标准源（~/.claude/CLAUDE.md）
 zcode/AGENTS.md ZCode 全局指令标准源（~/.zcode/AGENTS.md）
-skills/       15 个自研 Skills（业务四件套 + 评审/通用增强 + dsh 配套）
+skills/       18 个自研 Skills（业务四件套 + 评审/通用增强 + dsh 配套 + 本机环境）
 skills-vendor/ 48 个第三方 Skills 快照（cloudflare / mattpocock / app-shell-ui，来源见其 SOURCES.md）
 hooks/        Trellis commit 门禁与 UserPromptSubmit steer 提醒 hook 标准源（Claude 原样安装；ZCode 仅适配安装门禁，steer 仅 Claude 端）
 mcp/          各端脱敏 MCP 基线与安全合并说明

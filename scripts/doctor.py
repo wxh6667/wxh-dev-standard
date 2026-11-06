@@ -182,12 +182,16 @@ class Doctor:
                 self.report("FAIL", f"MCP server invalid: {name} in {config_path}")
                 continue
             if self.direct_serena(actual) and name == "serena":
+                # Documented local override: report it and skip the remaining
+                # field checks for this entry. Falling through would compare the
+                # override against the uvx baseline and reuse a `differences`
+                # list left over from an earlier server in this loop.
                 self.report("WARN", f"Serena uses documented direct-binary local override in {config_path}")
-            else:
-                differences = []
-                for key in ("command", "args"):
-                    if actual.get(key) != expected.get(key):
-                        differences.append(key)
+                continue
+            differences = []
+            for key in ("command", "args"):
+                if actual.get(key) != expected.get(key):
+                    differences.append(key)
             expected_env = expected.get("env", {})
             actual_env = actual.get("env", {})
             expected_keys = set(expected_env)

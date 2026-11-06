@@ -48,6 +48,24 @@
     "prompt": "按同一转换规则批量处理这几百条数据记录，并报告失败项。"
   },
   {
+    "id": "parallel-mutually-exclusive-scope",
+    "skill": "parallel-delegation",
+    "should_trigger": true,
+    "prompt": "这三个模块改动互不相交且各自有验收命令，并行派子代理做完再合并复核。"
+  },
+  {
+    "id": "parallel-dependency-tree",
+    "skill": "parallel-delegation",
+    "should_trigger": true,
+    "prompt": "解析层和存储层可以同时改，端到端用例要等两边合入，按依赖顺序排一下派发。"
+  },
+  {
+    "id": "parallel-not-single-file",
+    "skill": "parallel-delegation",
+    "should_trigger": false,
+    "prompt": "只改一个函数并跑一次测试，不需要拆分或并行。"
+  },
+  {
     "id": "instructions-long-term",
     "skill": "write-instructions-zh",
     "should_trigger": true,

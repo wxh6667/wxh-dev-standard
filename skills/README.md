@@ -1,8 +1,8 @@
 # Skills
 
-本目录是**自研 skill**（15 个），采用通用 Agent Skills 结构，默认安装到 Agent 的**全局发现目录**，跨项目复用；业务项目不需要复制整套 `skills/`。第三方 skill 快照在兄弟目录 [`skills-vendor/`](../skills-vendor/SOURCES.md)，由 `scripts/sync-skills.py` 一并分发。
+本目录是**自研 skill**（18 个），采用通用 Agent Skills 结构，默认安装到 Agent 的**全局发现目录**，跨项目复用；业务项目不需要复制整套 `skills/`。第三方 skill 快照在兄弟目录 [`skills-vendor/`](../skills-vendor/SOURCES.md)，由 `scripts/sync-skills.py` 一并分发。
 
-## 自研 Skills（15 个）
+## 自研 Skills（18 个）
 
 只保留**官方插件、系统能力和第三方快照都不涵盖**的自有工具与规范：
 
@@ -22,6 +22,7 @@
 - **code-review** - 自研中文评审框架（合同恢复、风险面、证据强度、兜底路径专项审查）
 - **context7-docs** - 写、改、审查涉及第三方库/框架/SDK/CLI 的代码或回答其用法、配置、版本迁移时，默认先走 Context7 查目标版本文档，不凭记忆或 WebSearch 回答
 - **batch-execution** - 批量相似任务处理，防单点错误扩散
+- **parallel-delegation** - 依赖树式的多单元委派：无依赖并发、有依赖串行，隔离工作区、按序合并、复核与 verdict 失效判定
 - **company-research-brief** - 公司公开资料调研与尽调简报
 - **github-solution-research** - 到 GitHub issues/PR/discussions 找现成方案
 - **moyu** - 检测并阻止过度工程模式
@@ -29,6 +30,13 @@
 - **xy-axis-thinking** - 归因、目标与同期参照比较
 - **write-instructions-zh** - 编写维护 AGENTS.md / 系统提示词 / 长期规则
 - **dsh-preset-config** - 修改 DeepSeek Harness（dsh）的 preset、profile 与插件配置，处理相关报错
+
+### 本机环境
+
+依赖本机 Docker/KVM 等宿主资源的个人环境 Skill；换机器需要先具备对应宿主条件。
+
+- **fingerprint-chromium** - 运行与管理 my-fingerprint-chromium 指纹浏览器容器（CDP 接入、多账号指纹隔离、代理出口；凭据由环境变量传入）
+- **win-vm** - 按需低内存 Windows 虚拟机（dockurr/windows + KVM），以 SSH 为主通道，用完即停
 
 ## 设计原则
 

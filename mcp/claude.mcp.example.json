@@ -24,7 +24,10 @@
     "serena": {
       "type": "stdio",
       "command": "uvx",
-      "args": ["-p", "3.13", "serena-agent", "start-mcp-server", "--project-from-cwd", "--context", "claude-code"]
+      "args": ["-p", "3.13", "serena-agent", "start-mcp-server", "--project-from-cwd", "--context", "claude-code"],
+      "env": {
+        "NODE_OPTIONS": "--max-old-space-size=1024"
+      }
     },
     "playwright": {
       "type": "stdio",

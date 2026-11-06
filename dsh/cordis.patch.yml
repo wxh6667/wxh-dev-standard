@@ -75,6 +75,7 @@
         command: uvx
         args: ['-p', '3.13', 'serena-agent', 'start-mcp-server', '--project', !!js process.env.HOME + '/.wxh-dev-standard', '--context', 'claude-code']
         env:
+          NODE_OPTIONS: '--max-old-space-size=1024'
           PATH: !!js process.env.HOME + '/.local/bin:' + (process.env.PATH ?? '')
         failOnStartupError: false
 

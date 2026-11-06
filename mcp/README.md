@@ -29,6 +29,8 @@ Serena 提供符号级代码编辑、重构、查询和调试能力（详见 `re
 
 本机也可以直接使用已安装的 `serena start-mcp-server --context=claude-code --project-from-cwd`，它与基线的 `uvx -p 3.13 serena-agent ...` 启动方式不同。`doctor.py` 只将这组明确参数报告为“本地启动差异”，不改写配置；其他命令或额外参数仍按漂移报告。新机器仍按上面的 Python 3.13 基线安装，不复制机器专有命令。
 
+基线给 serena 设 `NODE_OPTIONS=--max-old-space-size=1024`：serena 派生出的语言服务器是 Node 进程，封顶堆内存符合本仓库的主机资源约定。各端沿用同一个值，`doctor.py` 按 env 键名集合比对，不要只在某一端手改。
+
 ## Codex
 
 Codex 当前正式 MCP 配置源是 `~/.codex/config.toml` 中的 `[mcp_servers.*]`。不要把旧备份里的 `.codex/mcp-servers.json` 当成完整事实来源，也不要用本仓库模板直接覆盖整份 `config.toml`。

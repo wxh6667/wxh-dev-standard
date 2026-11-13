@@ -13,13 +13,13 @@
   },
   {
     "id": "context7-versioned-api",
-    "skill": "context7-docs",
+    "skill": "context7",
     "should_trigger": true,
     "prompt": "核对当前安装版本 Next.js 的 middleware 配置方式，以官方文档为准。"
   },
   {
     "id": "context7-not-local-logic",
-    "skill": "context7-docs",
+    "skill": "context7",
     "should_trigger": false,
     "prompt": "阅读这个仓库里的纯 Python 函数，解释它为什么返回空列表，不涉及第三方 API。"
   },
@@ -79,13 +79,13 @@
   },
   {
     "id": "context7-write-library-code",
-    "skill": "context7-docs",
+    "skill": "context7",
     "should_trigger": true,
     "prompt": "用 Prisma 给这个服务加一个带事务的批量写入，写出代码。"
   },
   {
     "id": "context7-library-error",
-    "skill": "context7-docs",
+    "skill": "context7",
     "should_trigger": true,
     "prompt": "升级 Vite 后构建报 plugin 相关错误，帮我确认新版的配置写法。"
   },
@@ -106,5 +106,35 @@
     "skill": "cnb-ci",
     "should_trigger": false,
     "prompt": "修改 docker-compose.yml 的端口映射和重启策略，镜像已经发布。"
+  },
+  {
+    "id": "grilling-explicit-trigger",
+    "skill": "grilling",
+    "should_trigger": true,
+    "prompt": "grillme，把这个方案的压力点逐轮拷问清楚再决定要不要实现。"
+  },
+  {
+    "id": "grilling-ambiguous-scope",
+    "skill": "grilling",
+    "should_trigger": true,
+    "prompt": "这个需求的验收口径和范围都不明确，先把会改变成本的决策逐个问清楚。"
+  },
+  {
+    "id": "grilling-not-simple-fix",
+    "skill": "grilling",
+    "should_trigger": false,
+    "prompt": "把这个按钮文案改成保存，其他都不动。"
+  },
+  {
+    "id": "app-shell-ui-redesign",
+    "skill": "app-shell-ui",
+    "should_trigger": true,
+    "prompt": "优化这个落地页的视觉和布局，按 Website Mode 重设计页面。"
+  },
+  {
+    "id": "app-shell-ui-not-local-fix",
+    "skill": "app-shell-ui",
+    "should_trigger": false,
+    "prompt": "只修这个页面表单校验提示的错别字，保持现有设计。"
   }
 ]

@@ -1,6 +1,6 @@
 ---
-name: context7-docs
-description: 凡是涉及第三方库、框架、SDK、云服务 API、构建工具或 CLI 的用法、参数、配置、安装、版本差异、迁移升级、弃用、库相关报错，或要写、改、审查调用这些库的代码时，先用 Context7 查目标版本的官方文档再回答，即使觉得自己已经知道（训练数据可能过期）。例如 React、Next.js、Prisma、Spring Boot、Vite、Docker、Cloudflare、Playwright、Flutter。纯业务逻辑、本地代码事实、通用编程概念不使用。
+name: context7
+description: 凡是涉及第三方库、框架、SDK、云服务 API、构建工具或 CLI 的用法、参数、配置、安装、版本差异、迁移升级、弃用、库相关报错，或要写、改、审查调用这些库的代码时，先调用本 Skill 并用 Context7 查目标版本的官方文档，即使觉得自己已经知道（训练数据可能过期）。例如 React、Next.js、Prisma、Spring Boot、Vite、Docker、Cloudflare、Playwright、Flutter。纯业务逻辑、本地代码事实、通用编程概念不使用。
 ---
 
 # 库文档查询

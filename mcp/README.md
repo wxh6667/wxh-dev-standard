@@ -72,7 +72,7 @@ MCP 提供工具能力，Skill 决定什么时候、如何使用工具，全局�
 
 | MCP | 承接流程的 Skill | 说明 |
 |---|---|---|
-| context7 | `context7-docs` | 何时查库文档、如何解析 library ID 全部在 Skill 中；MCP 只提供查询工具 |
+| context7 | `context7` | 何时查库文档、如何解析 library ID 全部在 Skill 中；MCP 只提供查询工具 |
 | serena | `ai-context-init`（项目初始化时确认是否初始化 Serena） | 提供符号查询、编辑、重构和调试工具；初始化流程在 Skill 中 |
 | playwright | 无专门 Skill，`delivery` / `deployment` 的"验证真实页面/API 路径"是它的主要使用场景 | 纯工具能力，安装即用 |
 | figma-bridge | 无 | 纯工具能力（设计稿转代码桥接），按需安装，不在基线 |
@@ -80,7 +80,7 @@ MCP 提供工具能力，Skill 决定什么时候、如何使用工具，全局�
 | mcp-server-time | 无 | 纯工具能力（时间/时区查询），按需使用 |
 | awslabs.document-loader | 无 | Claude 侧独有的文档读取能力（PDF/Word/Excel/PPT） |
 
-被抽离进 Skills 的是**调用策略**，不是工具本体：`context7-docs` 和 `ai-context-init` 只承接"何时、如何用"，对应的 MCP 仍必须安装，否则 Skill 没有可调用的工具。反之，Skill 中不重复编写 MCP 的内置说明或调用参数细节，避免同一事实出现两个来源。
+被抽离进 Skills 的是**调用策略**，不是工具本体：`context7` 和 `ai-context-init` 只承接"何时、如何用"，对应的 MCP 仍必须安装，否则 Skill 没有可调用的工具。反之，Skill 中不重复编写 MCP 的内置说明或调用参数细节，避免同一事实出现两个来源。
 
 ## Serena 与 CodeGraph
 

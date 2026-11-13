@@ -33,7 +33,7 @@ Codex、Claude Code、ZCode、PI-Desktop 与 DSH 保留各自的指令入口、�
 
 `skills/` 是**自研 skill**（官方插件和基本能力不涵盖的业务工具、规范与个人常用流程），`scripts/sync-skills.py` 把两者一并以符号链接分发到各端全局目录：
 
-- **skills/**（18 个）：ai-context-init、cnb-ci、docker-build、deployment（业务四件套）；code-review（自研评审框架）、context7-docs、batch-execution、parallel-delegation、company-research-brief、github-solution-research、moyu、workflow-route-mapper、xy-axis-thinking、write-instructions-zh（通用增强）；agent-capability-integration、dsh-preset-config（dsh 配套）；fingerprint-chromium、win-vm（本机环境）。
+- **skills/**（18 个）：ai-context-init、cnb-ci、docker-build、deployment（业务四件套）；code-review（自研评审框架）、context7、batch-execution、parallel-delegation、company-research-brief、github-solution-research、moyu、workflow-route-mapper、xy-axis-thinking、write-instructions-zh（通用增强）；agent-capability-integration、dsh-preset-config（dsh 配套）；fingerprint-chromium、win-vm（本机环境）。
 - **skills-vendor/**（48 个）：第三方 skill 快照，一并入仓供离线一键安装——cloudflare/ 14 个（Workers 平台全家桶，含 web-perf 前端性能审计）、mattpocock/ 33 个（工程流程系）、app-shell-ui/ 1 个（前端双模式 UI 规范）。来源与同步方法见 [`skills-vendor/SOURCES.md`](skills-vendor/SOURCES.md)。
 
 其他开发能力（发现问题、解决问题、构建、复审）由各端系统能力和官方插件处理。
@@ -121,7 +121,7 @@ MCP：PI 把 MCP 配置保存在应用私有存储并由设置面板管理，没
 
 ## 自动加载
 
-自动匹配的专业 Skill 由 `description` 负责发现，命中后按需读取正文与参考。19 个流程/审查 Skill（第三方 18 个及 moyu）在 Claude/Codex 元数据中采用显式调用；各端实际启用政策以宿主设置为准，不假设 ZCode/PI 自动解释这些字段。Claude 缺失配置默认保留 Cloudflare 入口与 web-perf 的完整描述，其他低频项使用 name-only；off 会完全禁用，已有用户选择不覆盖。调用 Skill 不扩大提交、发布或部署授权。
+自动匹配的专业 Skill 由 `description` 负责发现，命中后按需读取正文与参考。19 个流程/审查 Skill（第三方 18 个及 moyu）在 Claude/Codex 元数据中采用显式调用；各端实际启用政策以宿主设置为准，不假设 ZCode/PI 自动解释这些字段。Claude 缺失配置默认保留 Cloudflare 入口、web-perf 与 app-shell-ui 的完整描述，其他低频项使用 name-only；off 会完全禁用，已有用户选择不覆盖。调用 Skill 不扩大提交、发布或部署授权。
 
 ## 更新
 

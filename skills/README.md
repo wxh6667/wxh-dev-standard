@@ -20,7 +20,7 @@
 
 - **agent-capability-integration** - 评估外部 Agent 包与工作流，将确有增量的机制按需吸收到现有 Skill、规则或执行层，保留原有行为与资源关系
 - **code-review** - 自研中文评审框架（合同恢复、风险面、证据强度、兜底路径专项审查）
-- **context7-docs** - 写、改、审查涉及第三方库/框架/SDK/CLI 的代码或回答其用法、配置、版本迁移时，默认先走 Context7 查目标版本文档，不凭记忆或 WebSearch 回答
+- **context7** - 写、改、审查涉及第三方库/框架/SDK/CLI 的代码或回答其用法、配置、版本迁移时，默认先走 Context7 查目标版本文档，不凭记忆或 WebSearch 回答
 - **batch-execution** - 批量相似任务处理，防单点错误扩散
 - **parallel-delegation** - 依赖树式的多单元委派：无依赖并发、有依赖串行，隔离工作区、按序合并、复核与 verdict 失效判定
 - **company-research-brief** - 公司公开资料调研与尽调简报

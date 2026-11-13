@@ -70,8 +70,8 @@ SKILL_OVERRIDES_BASELINE = {
     "web-perf": "on",
     "workers-best-practices": "name-only",
     "wrangler": "name-only",
-    # app-shell-ui: low-frequency, keep manually invocable via /
-    "app-shell-ui": "name-only",
+    # app-shell-ui: keep the full description so page/UI redesign requests can match
+    "app-shell-ui": "on",
 }
 
 # wxh-owned scalar settings keys merged into settings.json. The skill
